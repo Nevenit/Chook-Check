@@ -4,6 +4,7 @@ export interface PriceObservation {
   productName: string;
   brand: string | null;
   category: string | null;
+  gtin: string | null;
   storeChain: "woolworths" | "coles";
   priceCents: number;
   wasPriceCents: number | null;
