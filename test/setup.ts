@@ -1,2 +1,3 @@
 // Vitest global setup
-// Add shared test utilities and mocks here as the project grows
+// Polyfill IndexedDB for Dexie tests (no-op in tests that don't use it)
+import "fake-indexeddb/auto";
