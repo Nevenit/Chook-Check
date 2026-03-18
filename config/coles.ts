@@ -2,57 +2,45 @@ import type { ScraperConfig } from "@/lib/types";
 
 export const colesConfig: ScraperConfig = {
   chain: "coles",
-  version: "1.0.0",
+  version: "2.0.0",
   productPage: {
-    urlPattern: "https://www.coles.com.au/product/",
+    urlPattern: "/product/",
     selectors: {
       jsonLd: 'script[type="application/ld+json"]',
-      jsState: "#__NEXT_DATA__",
+      jsState: "",
       productName: [
-        ".product__title",
-        '[class*="product-name"]',
-        "h1.product-header",
+        '[data-testid="title"]',
+        "h1",
       ],
       price: [
+        '[data-testid="pricing"]',
         ".price__value",
-        '[class*="price"]',
-        ".product-price .primary",
       ],
       wasPrice: [
         ".price__was",
-        '[class*="was-price"]',
-        ".product-price .secondary",
       ],
       unitPrice: [
         ".price__calculation_method",
-        '[class*="unit-price"]',
-        '[class*="packagePrice"]',
       ],
       unitMeasure: [
         ".price__calculation_method",
-        '[class*="unit-price"]',
-        '[class*="packagePrice"]',
       ],
       promoLabel: [
-        ".product__promotion",
-        '[class*="promo"]',
-        '[class*="special"]',
+        ".roundel-text",
+        '[data-testid="complex-promotion-link"]',
       ],
       personalisedSection: [
         '[class*="personalised"]',
         '[class*="for-you"]',
-        '[data-testid*="personalised"]',
       ],
       productId: [
-        '[data-product-id]',
-        'meta[itemprop="sku"]',
-        '[data-testid*="product-id"]',
+        '[data-testid="product-code"]',
       ],
-      brand: ['[itemprop="brand"]', '[class*="brand"]'],
+      brand: [
+        '[data-testid="brand-link"]',
+      ],
       category: [
-        '[class*="breadcrumb"]',
-        'meta[itemprop="category"]',
-        '[data-testid*="breadcrumb"]',
+        '[data-testid="breadcrumbs"]',
       ],
     },
   },
