@@ -1,5 +1,5 @@
 import type { ChookCheckDB } from "./db";
-import type { PriceObservation } from "./types";
+import type { PriceObservation, UserSettings } from "./types";
 
 /**
  * Computes the local calendar day boundaries for a given ISO timestamp.
@@ -81,4 +81,33 @@ export async function saveObservation(
       console.error("[Chook Check] Failed to save observation:", error);
     }
   }
+}
+
+export async function initDefaults(db: ChookCheckDB): Promise<void> {
+  const existing = await db.userSettings.get("default");
+  if (existing) return;
+
+  await db.userSettings.add({
+    key: "default",
+    contributionEnabled: false,
+    contributorId: "",
+    contributorIdMode: "anonymous",
+    shareBrowser: false,
+    shareState: false,
+    shareCity: false,
+    shareStore: false,
+    linkAccount: false,
+    consentLog: [],
+  });
+}
+
+export async function saveSettings(
+  db: ChookCheckDB,
+  settings: Partial<UserSettings>,
+): Promise<void> {
+  const existing = await db.userSettings.get("default");
+  if (!existing) {
+    await initDefaults(db);
+  }
+  await db.userSettings.update("default", settings);
 }

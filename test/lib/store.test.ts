@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ChookCheckDB } from "../../lib/db";
-import { saveObservation } from "../../lib/store";
+import { saveObservation, initDefaults, saveSettings } from "../../lib/store";
 import { makeObservation } from "../helpers";
 
 let db: ChookCheckDB;
@@ -96,5 +96,52 @@ describe("saveObservation", () => {
 
     const obs = makeObservation();
     await expect(saveObservation(db, obs)).resolves.toBeUndefined();
+  });
+});
+
+describe("initDefaults", () => {
+  it("creates default settings row on first call", async () => {
+    await initDefaults(db);
+
+    const settings = await db.userSettings.get("default");
+    expect(settings).toBeDefined();
+    expect(settings!.contributionEnabled).toBe(false);
+    expect(settings!.contributorId).toBe("");
+    expect(settings!.contributorIdMode).toBe("anonymous");
+    expect(settings!.shareBrowser).toBe(false);
+    expect(settings!.shareState).toBe(false);
+    expect(settings!.shareCity).toBe(false);
+    expect(settings!.shareStore).toBe(false);
+    expect(settings!.linkAccount).toBe(false);
+    expect(settings!.consentLog).toEqual([]);
+  });
+
+  it("does not overwrite existing settings on second call", async () => {
+    await initDefaults(db);
+    await db.userSettings.update("default", { contributionEnabled: true });
+
+    await initDefaults(db);
+
+    const settings = await db.userSettings.get("default");
+    expect(settings!.contributionEnabled).toBe(true);
+  });
+});
+
+describe("saveSettings", () => {
+  it("updates a single field in existing settings", async () => {
+    await initDefaults(db);
+    await saveSettings(db, { contributionEnabled: true });
+
+    const settings = await db.userSettings.get("default");
+    expect(settings!.contributionEnabled).toBe(true);
+    expect(settings!.contributorIdMode).toBe("anonymous");
+  });
+
+  it("creates defaults first if no settings exist, then applies changes", async () => {
+    await saveSettings(db, { shareCity: true });
+
+    const settings = await db.userSettings.get("default");
+    expect(settings!.shareCity).toBe(true);
+    expect(settings!.contributionEnabled).toBe(false);
   });
 });
