@@ -34,7 +34,9 @@ export default defineBackground(() => {
       console.log(
         `[Chook Check] ${storeChain}: ${productName} — $${(priceCents / 100).toFixed(2)}`,
       );
-      saveObservation(db, message.data);
+      saveObservation(db, message.data).catch((err) =>
+        console.error("[Chook Check] Unhandled saveObservation error:", err),
+      );
     }
   });
 });

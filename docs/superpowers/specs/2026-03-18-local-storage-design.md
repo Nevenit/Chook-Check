@@ -49,14 +49,33 @@ Single-row table keyed by a fixed string `"default"`. Stores the `UserSettings` 
 | key | string | Always `"default"` |
 | ...UserSettings fields | | Spread from the interface |
 
+### Default UserSettings
+
+`initDefaults()` creates the settings row with these values:
+
+| Field | Default | Notes |
+|-------|---------|-------|
+| contributionEnabled | `false` | Opt-in only |
+| contributorId | `""` | Empty until user opts in; generated as UUID at opt-in time |
+| contributorIdMode | `"anonymous"` | |
+| shareBrowser | `false` | |
+| shareState | `false` | |
+| shareCity | `false` | |
+| shareStore | `false` | |
+| linkAccount | `false` | |
+| consentLog | `[]` | Empty array |
+
 ### Deduplication Strategy
 
 When `saveObservation` receives a new observation:
 
-1. Query the compound index `[productId+observedAt]` for the same product on the same calendar date
-2. If a match exists with the **same `priceCents`** → update `observedAt` timestamp (refresh the existing row)
-3. If a match exists with a **different `priceCents`** → insert a new row (price changed mid-day, keep both)
-4. If no match → insert new row
+1. Extract the user's **local calendar date** from the observation's `observedAt` ISO timestamp (Australian prices change at local midnight, not UTC)
+2. Query the compound index `[productId+observedAt]` using a **range query** — `where('[productId+observedAt]').between([productId, dayStartISO], [productId, dayEndISO])` — to find any observations for the same product on the same local date
+3. If a match exists with the **same `priceCents`** → update `observedAt` timestamp (refresh the existing row)
+4. If a match exists with a **different `priceCents`** → insert a new row (price changed mid-day, keep both)
+5. If no match → insert new row
+
+Note: `productId` values are already chain-prefixed by the scrapers (e.g., extracted from chain-specific URLs), so the compound index implicitly scopes to a single retailer.
 
 This captures price changes while avoiding duplicate rows from repeated visits to the same product page.
 
@@ -73,7 +92,7 @@ This captures price changes while avoiding duplicate rows from repeated visits t
   - `getProductHistory(productId: string): Promise<PriceObservation[]>` — all observations for a product, sorted by date
   - `getRecentObservations(limit?: number): Promise<PriceObservation[]>` — most recent observations across all products
   - `getProductStats(productId: string): Promise<{ min, max, avg, count }>` — price statistics
-  - `searchProducts(query: string): Promise<PriceObservation[]>` — search by product name substring
+  - `searchProducts(query: string): Promise<PriceObservation[]>` — search by product name (in-memory filter via `toArray()` then `.filter()` — IndexedDB has no native substring search; fine for local datasets in the low thousands)
   - `getStorageStats(): Promise<{ totalObservations, oldestDate, newestDate, byChain }>` — dashboard stats
 - **`lib/export.ts`** — Data export:
   - `exportAsJSON(): Promise<string>` — full dump as JSON
@@ -86,7 +105,7 @@ This captures price changes while avoiding duplicate rows from repeated visits t
 
 ### Modified files
 
-- **`entrypoints/background.ts`** — Wire `saveObservation` into the message handler, call `initDefaults()` on startup, register `browser.alarms` for daily retention cleanup
+- **`entrypoints/background.ts`** — Wire `saveObservation` into the message handler (fire-and-forget — no return value to content scripts), call `initDefaults()` on startup, register `browser.alarms` for daily retention cleanup
 
 ### Data Flow
 
@@ -101,7 +120,7 @@ Content Script (scraper)
 
 ## Testing Strategy
 
-**Test environment:** Vitest with `fake-indexeddb` — Dexie supports this for unit testing without a real browser.
+**Test environment:** Vitest with `fake-indexeddb` — Dexie supports this for unit testing without a real browser. Tests must import `fake-indexeddb/auto` in setup (or in each test file) to polyfill the `indexedDB` global into the happy-dom vitest environment.
 
 **Test files:**
 - `test/lib/db.test.ts` — Schema creation, table existence, index verification
