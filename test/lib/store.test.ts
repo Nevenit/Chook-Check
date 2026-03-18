@@ -26,30 +26,30 @@ describe("saveObservation", () => {
 
   it("deduplicates same product, same day, same price — updates observedAt", async () => {
     const obs1 = makeObservation({
-      observedAt: "2026-03-18T12:00:00.000Z",
+      observedAt: "2026-03-18T02:00:00.000Z",
     });
     await saveObservation(db, obs1);
 
     const obs2 = makeObservation({
-      observedAt: "2026-03-18T14:00:00.000Z",
+      observedAt: "2026-03-18T04:00:00.000Z",
     });
     await saveObservation(db, obs2);
 
     const all = await db.priceObservations.toArray();
     expect(all).toHaveLength(1);
-    expect(all[0].observedAt).toBe("2026-03-18T14:00:00.000Z");
+    expect(all[0].observedAt).toBe("2026-03-18T04:00:00.000Z");
   });
 
   it("inserts new row when same product, same day, different price", async () => {
     const obs1 = makeObservation({
       priceCents: 350,
-      observedAt: "2026-03-18T12:00:00.000Z",
+      observedAt: "2026-03-18T02:00:00.000Z",
     });
     await saveObservation(db, obs1);
 
     const obs2 = makeObservation({
       priceCents: 300,
-      observedAt: "2026-03-18T14:00:00.000Z",
+      observedAt: "2026-03-18T04:00:00.000Z",
     });
     await saveObservation(db, obs2);
 
@@ -62,13 +62,13 @@ describe("saveObservation", () => {
   it("inserts new row for different product on same day", async () => {
     const obs1 = makeObservation({
       productId: "product-a",
-      observedAt: "2026-03-18T12:00:00.000Z",
+      observedAt: "2026-03-18T02:00:00.000Z",
     });
     await saveObservation(db, obs1);
 
     const obs2 = makeObservation({
       productId: "product-b",
-      observedAt: "2026-03-18T12:00:00.000Z",
+      observedAt: "2026-03-18T02:00:00.000Z",
     });
     await saveObservation(db, obs2);
 
@@ -78,12 +78,12 @@ describe("saveObservation", () => {
 
   it("inserts new row for same product on different days", async () => {
     const obs1 = makeObservation({
-      observedAt: "2026-03-18T12:00:00.000Z",
+      observedAt: "2026-03-18T02:00:00.000Z",
     });
     await saveObservation(db, obs1);
 
     const obs2 = makeObservation({
-      observedAt: "2026-03-19T12:00:00.000Z",
+      observedAt: "2026-03-19T02:00:00.000Z",
     });
     await saveObservation(db, obs2);
 

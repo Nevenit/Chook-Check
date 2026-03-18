@@ -2,24 +2,24 @@ import type { ChookCheckDB } from "./db";
 import type { PriceObservation } from "./types";
 
 /**
- * Computes the UTC calendar day boundaries for a given ISO timestamp.
- * Deduplication is keyed on UTC date so that two observations on the same
- * UTC calendar day are treated as the same day regardless of local timezone.
+ * Computes the local calendar day boundaries for a given ISO timestamp.
+ * Uses the browser's local timezone (correct for Australian users —
+ * prices change at local midnight, not UTC midnight).
  */
-function getUtcDayBounds(isoTimestamp: string): {
+function getLocalDayBounds(isoTimestamp: string): {
   start: string;
   end: string;
 } {
   const date = new Date(isoTimestamp);
   const dayStart = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
   );
   const dayEnd = new Date(
-    Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate() + 1,
-    ),
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate() + 1,
   );
   return {
     start: dayStart.toISOString(),
@@ -40,7 +40,7 @@ export async function saveObservation(
   obs: PriceObservation,
 ): Promise<void> {
   try {
-    const { start, end } = getUtcDayBounds(obs.observedAt);
+    const { start, end } = getLocalDayBounds(obs.observedAt);
 
     const existing = await db.priceObservations
       .where("productId")
