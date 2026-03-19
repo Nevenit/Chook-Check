@@ -1,44 +1,73 @@
+const URL_CHANGE_EVENT = "chook-check:url-change";
+let patched = false;
+let listenerCount = 0;
+let originalPushState: typeof history.pushState | null = null;
+let originalReplaceState: typeof history.replaceState | null = null;
+
+function dispatchUrlChange(): void {
+  window.dispatchEvent(new CustomEvent(URL_CHANGE_EVENT));
+}
+
+function ensurePatched(): void {
+  if (patched) return;
+  patched = true;
+
+  originalPushState = history.pushState.bind(history);
+  originalReplaceState = history.replaceState.bind(history);
+
+  history.pushState = (...args: Parameters<typeof history.pushState>) => {
+    originalPushState!(...args);
+    dispatchUrlChange();
+  };
+
+  history.replaceState = (
+    ...args: Parameters<typeof history.replaceState>
+  ) => {
+    originalReplaceState!(...args);
+    dispatchUrlChange();
+  };
+
+  window.addEventListener("popstate", dispatchUrlChange);
+}
+
+function restorePatches(): void {
+  if (!patched) return;
+  if (originalPushState) history.pushState = originalPushState;
+  if (originalReplaceState) history.replaceState = originalReplaceState;
+  window.removeEventListener("popstate", dispatchUrlChange);
+  patched = false;
+  originalPushState = null;
+  originalReplaceState = null;
+}
+
 /**
  * Listens for client-side URL changes (SPA navigation).
- * Monkey-patches pushState/replaceState and listens for popstate.
- * Debounces rapid changes (500ms).
- * Returns a cleanup function that restores the original methods.
+ * Patches pushState/replaceState once, dispatches a custom event.
+ * Multiple callers each get their own debounced listener.
+ * Returns a cleanup function; when all listeners are removed, restores originals.
  */
 export function onUrlChange(callback: (url: string) => void): () => void {
+  ensurePatched();
+  listenerCount++;
+
   let debounceTimer: ReturnType<typeof setTimeout>;
 
-  const notify = () => {
+  const handler = () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       callback(window.location.href);
     }, 500);
   };
 
-  // Monkey-patch pushState
-  const originalPushState = history.pushState.bind(history);
-  history.pushState = (...args: Parameters<typeof history.pushState>) => {
-    originalPushState(...args);
-    notify();
-  };
+  window.addEventListener(URL_CHANGE_EVENT, handler);
 
-  // Monkey-patch replaceState
-  const originalReplaceState = history.replaceState.bind(history);
-  history.replaceState = (
-    ...args: Parameters<typeof history.replaceState>
-  ) => {
-    originalReplaceState(...args);
-    notify();
-  };
-
-  // Listen for browser back/forward
-  window.addEventListener("popstate", notify);
-
-  // Return cleanup function
   return () => {
     clearTimeout(debounceTimer);
-    history.pushState = originalPushState;
-    history.replaceState = originalReplaceState;
-    window.removeEventListener("popstate", notify);
+    window.removeEventListener(URL_CHANGE_EVENT, handler);
+    listenerCount--;
+    if (listenerCount === 0) {
+      restorePatches();
+    }
   };
 }
 
