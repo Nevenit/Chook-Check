@@ -1,0 +1,19 @@
+.list {
+  margin-bottom: 12px;
+}
+
+.heading {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin: 0 0 8px;
+}
+
+.empty {
+  padding: 16px 0;
+  font-size: 13px;
+  color: #888;
+  text-align: center;
+}

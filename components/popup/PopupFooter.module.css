@@ -1,0 +1,33 @@
+.footer {
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.links {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.link {
+  font-size: 13px;
+  color: #16a34a;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.status {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
+
+.cta {
+  font-size: 11px;
+  color: #16a34a;
+  margin: 4px 0 0;
+  cursor: pointer;
+}

@@ -1,0 +1,41 @@
+.item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.price {
+  font-size: 13px;
+  font-weight: 600;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.bottom {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.chain {
+  text-transform: capitalize;
+}
