@@ -123,6 +123,46 @@ describe("getStorageStats", () => {
 
   it("returns zeroed stats for empty database", async () => {
     const stats = await getStorageStats(db);
-    expect(stats).toEqual({ totalObservations: 0, oldestDate: null, newestDate: null, byChain: {} });
+    expect(stats).toEqual({ totalObservations: 0, distinctProducts: 0, oldestDate: null, newestDate: null, byChain: {} });
+  });
+
+  it("returns distinct product count", async () => {
+    await db.priceObservations.bulkAdd([
+      makeObservation({ productId: "product-a", observedAt: "2026-03-18T01:00:00.000Z" }),
+      makeObservation({ productId: "product-a", observedAt: "2026-03-18T02:00:00.000Z", priceCents: 400 }),
+      makeObservation({ productId: "product-b", observedAt: "2026-03-18T03:00:00.000Z" }),
+    ]);
+
+    const stats = await getStorageStats(db);
+    expect(stats.distinctProducts).toBe(2);
+    expect(stats.totalObservations).toBe(3);
+  });
+
+  it("returns zero distinct products for empty database", async () => {
+    const stats = await getStorageStats(db);
+    expect(stats.distinctProducts).toBe(0);
+  });
+});
+
+describe("getProductHistory + getProductStats (GET_PRODUCT_DATA handler path)", () => {
+  it("returns history and stats for known product", async () => {
+    await db.priceObservations.bulkAdd([
+      makeObservation({ productId: "woolworths:123", priceCents: 300, observedAt: "2026-03-17T00:00:00.000Z" }),
+      makeObservation({ productId: "woolworths:123", priceCents: 400, observedAt: "2026-03-18T00:00:00.000Z" }),
+    ]);
+
+    const history = await getProductHistory(db, "woolworths:123");
+    const stats = await getProductStats(db, "woolworths:123");
+
+    expect(history).toHaveLength(2);
+    expect(stats).toEqual({ min: 300, max: 400, avg: 350, count: 2 });
+  });
+
+  it("returns empty results for unknown product", async () => {
+    const history = await getProductHistory(db, "unknown:999");
+    const stats = await getProductStats(db, "unknown:999");
+
+    expect(history).toHaveLength(0);
+    expect(stats).toBeNull();
   });
 });

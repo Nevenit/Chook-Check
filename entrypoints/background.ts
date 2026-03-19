@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { saveObservation, initDefaults } from "@/lib/store";
 import { deleteOlderThan } from "@/lib/retention";
+import { getProductHistory, getProductStats } from "@/lib/data";
 
 const RETENTION_ALARM = "chook-check-retention";
 const RETENTION_DAYS = 365;
@@ -37,6 +38,14 @@ export default defineBackground(() => {
       saveObservation(db, message.data).catch((err) =>
         console.error("[Chook Check] Unhandled saveObservation error:", err),
       );
+    }
+
+    if (message.type === "GET_PRODUCT_DATA" && message.productId) {
+      return (async () => {
+        const history = await getProductHistory(db, message.productId);
+        const stats = await getProductStats(db, message.productId);
+        return { history, stats };
+      })();
     }
   });
 });
