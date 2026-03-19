@@ -4,6 +4,7 @@ import {
   parseUnitMeasure,
   buildObservation,
 } from "../scraper";
+import { extractWoolworthsSku } from "../product-id";
 import type { PriceObservation } from "../types";
 
 /**
@@ -20,7 +21,7 @@ export function scrapeWoolworths(
   // Extract from JSON-LD
   const name = typeof jsonLd.name === "string" ? jsonLd.name : null;
   const sku =
-    jsonLd.sku != null ? String(jsonLd.sku) : extractSkuFromUrl(url);
+    jsonLd.sku != null ? String(jsonLd.sku) : extractWoolworthsSku(url);
   const gtin = typeof jsonLd.gtin === "string" ? jsonLd.gtin : null;
 
   // Brand is an object: { @type: "Organization", name: "..." }
@@ -75,12 +76,6 @@ export function scrapeWoolworths(
     pageUrl: url,
     observedAt: new Date().toISOString(),
   });
-}
-
-function extractSkuFromUrl(url: string): string | null {
-  // URL pattern: /shop/productdetails/{id}/{slug}
-  const match = url.match(/\/shop\/productdetails\/(\d+)/);
-  return match ? match[1] : null;
 }
 
 function extractUnitMeasureFromDom(doc: Document): string | null {

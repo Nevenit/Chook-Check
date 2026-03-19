@@ -4,6 +4,7 @@ import {
   parseUnitMeasure,
   buildObservation,
 } from "../scraper";
+import { extractColesSku } from "../product-id";
 import type { PriceObservation } from "../types";
 
 /**
@@ -19,7 +20,7 @@ export function scrapeColes(
 
   // Extract from JSON-LD
   const name = typeof jsonLd.name === "string" ? jsonLd.name : null;
-  const sku = jsonLd.sku != null ? String(jsonLd.sku) : extractSkuFromUrl(url);
+  const sku = jsonLd.sku != null ? String(jsonLd.sku) : extractColesSku(url);
   const gtin = typeof jsonLd.gtin === "string" ? jsonLd.gtin : null;
 
   const brandObj = jsonLd.brand as Record<string, unknown> | undefined;
@@ -79,12 +80,6 @@ export function scrapeColes(
     pageUrl: url,
     observedAt: new Date().toISOString(),
   });
-}
-
-function extractSkuFromUrl(url: string): string | null {
-  // URL pattern: /product/{slug}-{sku}
-  const match = url.match(/\/product\/.*?-(\d+)(?:\?|$)/);
-  return match ? match[1] : null;
 }
 
 function detectColesPromoType(doc: Document): string | null {
