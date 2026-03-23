@@ -6,6 +6,7 @@ import {
 } from "../scraper";
 import { extractWoolworthsSku } from "../product-id";
 import type { PriceObservation } from "../types";
+import type { ObservationFields } from "../scraper";
 
 /**
  * Extracts a PriceObservation from a Woolworths product page.
@@ -120,4 +121,74 @@ function extractWoolworthsCategory(doc: Document): string | null {
   if (links.length === 0) return null;
   const last = links[links.length - 1];
   return last.textContent?.trim() || null;
+}
+
+/**
+ * Scrapes all product tiles from a Woolworths search/category page.
+ * Tiles use Shadow DOM (open mode) with `wc-product-tile` elements.
+ */
+export function scrapeWoolworthsSearchTiles(
+  doc: Document,
+): PriceObservation[] {
+  const tiles = doc.querySelectorAll("wc-product-tile");
+  const results: PriceObservation[] = [];
+
+  for (const tile of tiles) {
+    const sr = tile.shadowRoot;
+    if (!sr) continue;
+
+    const link = sr.querySelector('a[href*="/shop/productdetails/"]');
+    const href = link?.getAttribute("href") ?? "";
+    const sku = extractWoolworthsSku(href);
+    if (!sku) continue;
+
+    const name = sr.querySelector(".title a")?.textContent?.trim() ?? null;
+    if (!name) continue;
+
+    const priceText =
+      sr.querySelector(".product-tile-price .primary")?.textContent?.trim() ??
+      null;
+    const priceCents = parsePriceCents(priceText ?? "");
+    if (priceCents == null) continue;
+
+    const wasText =
+      sr.querySelector(".was-price")?.textContent?.trim() ?? null;
+    const wasPriceCents = wasText ? parsePriceCents(wasText) : null;
+
+    const cupText =
+      sr.querySelector(".price-per-cup")?.textContent?.trim() ?? null;
+    const unitPriceCents = cupText ? parsePriceCents(cupText) : null;
+    const unitMeasure = cupText ? parseUnitMeasure(cupText) : null;
+
+    const labelEl = sr.querySelector(".product-tile-label");
+    let promoType: string | null = null;
+    if (labelEl) {
+      const cls = labelEl.className;
+      if (cls.includes("lowerShelfPrice")) promoType = "lower_price";
+      else if (cls.includes("special")) promoType = "special";
+      else if (labelEl.textContent?.includes("SAVE")) promoType = "special";
+    }
+
+    const fields: ObservationFields = {
+      productId: `woolworths:${sku}`,
+      productName: name,
+      brand: null,
+      category: null,
+      gtin: null,
+      storeChain: "woolworths",
+      priceCents,
+      wasPriceCents,
+      unitPriceCents,
+      unitMeasure,
+      promoType,
+      isPersonalised: false,
+      pageUrl: window.location.href,
+      observedAt: new Date().toISOString(),
+    };
+
+    const obs = buildObservation(fields);
+    if (obs) results.push(obs);
+  }
+
+  return results;
 }

@@ -6,6 +6,7 @@ import {
 } from "../scraper";
 import { extractColesSku } from "../product-id";
 import type { PriceObservation } from "../types";
+import type { ObservationFields } from "../scraper";
 
 /**
  * Extracts a PriceObservation from a Coles product page.
@@ -103,4 +104,76 @@ function extractColesCategory(doc: Document): string | null {
   // Last breadcrumb link is the most specific category
   const last = links[links.length - 1];
   return last.textContent?.trim() || null;
+}
+
+/**
+ * Scrapes all product tiles from a Coles search/category page.
+ * Tiles use `[data-testid="product-tile"]` in regular DOM.
+ */
+export function scrapeColesSearchTiles(
+  doc: Document,
+): PriceObservation[] {
+  const tiles = doc.querySelectorAll('[data-testid="product-tile"]');
+  const results: PriceObservation[] = [];
+
+  for (const tile of tiles) {
+    const link = tile.querySelector('a[href*="/product/"]');
+    const href = link?.getAttribute("href") ?? "";
+    const sku = extractColesSku(href);
+    if (!sku) continue;
+
+    const name =
+      tile.querySelector(".product__title")?.textContent?.trim() ?? null;
+    if (!name) continue;
+
+    const priceText =
+      tile.querySelector("span.price__value")?.textContent?.trim() ?? null;
+    const priceCents = parsePriceCents(priceText ?? "");
+    if (priceCents == null) continue;
+
+    const wasEl = tile.querySelector(".price__was");
+    const wasPriceCents = wasEl?.textContent
+      ? parsePriceCents(wasEl.textContent)
+      : null;
+
+    const calcEl = tile.querySelector(".price__calculation_method");
+    let unitPriceCents: number | null = null;
+    let unitMeasure: string | null = null;
+    if (calcEl?.textContent) {
+      const unitText = calcEl.textContent.split("|")[0].trim();
+      unitPriceCents = parsePriceCents(unitText);
+      unitMeasure = parseUnitMeasure(unitText);
+    }
+
+    const promoEl = tile.querySelector(".product_promotion");
+    let promoType: string | null = null;
+    if (promoEl) {
+      const cls = promoEl.className;
+      if (cls.includes("half-price")) promoType = "half_price";
+      else if (cls.includes("special")) promoType = "special";
+      else promoType = "special";
+    }
+
+    const fields: ObservationFields = {
+      productId: `coles:${sku}`,
+      productName: name,
+      brand: null,
+      category: null,
+      gtin: null,
+      storeChain: "coles",
+      priceCents,
+      wasPriceCents,
+      unitPriceCents,
+      unitMeasure,
+      promoType,
+      isPersonalised: false,
+      pageUrl: window.location.href,
+      observedAt: new Date().toISOString(),
+    };
+
+    const obs = buildObservation(fields);
+    if (obs) results.push(obs);
+  }
+
+  return results;
 }
