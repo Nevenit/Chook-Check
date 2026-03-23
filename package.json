@@ -18,6 +18,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "chart.js": "^4.5.1",
     "dexie": "^4.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
