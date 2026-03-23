@@ -1,0 +1,90 @@
+.searchBar {
+  margin-bottom: 16px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: #1a7a2e;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  padding: 8px 12px;
+  border-bottom: 2px solid #e0e0e0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.table th:hover {
+  color: #1a1a1a;
+}
+
+.sortIndicator {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.table td {
+  padding: 10px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover {
+  background: #f5f5f5;
+}
+
+.chain {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.changeUp {
+  color: #d32f2f;
+  font-size: 12px;
+}
+
+.changeDown {
+  color: #1a7a2e;
+  font-size: 12px;
+}
+
+.changeNone {
+  color: #999;
+  font-size: 12px;
+}
+
+.emptyState {
+  color: #888;
+  font-size: 14px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.loading {
+  color: #888;
+  font-size: 14px;
+  padding: 24px 0;
+}

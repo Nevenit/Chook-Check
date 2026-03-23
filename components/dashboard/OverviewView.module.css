@@ -1,0 +1,88 @@
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: #666;
+}
+
+.changeCard {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.changeCard:hover {
+  border-color: #1a7a2e;
+}
+
+.changeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.changeName {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.changeAmount {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.changeUp {
+  color: #d32f2f;
+}
+
+.changeDown {
+  color: #1a7a2e;
+}
+
+.changeMeta {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.emptyState {
+  color: #888;
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.loading {
+  color: #888;
+  font-size: 14px;
+  padding: 24px 0;
+}
