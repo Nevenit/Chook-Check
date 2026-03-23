@@ -30,7 +30,7 @@ export interface UserSettings {
 }
 
 export interface ConsentEvent {
-  action: "opted_in" | "opted_out" | "toggle_changed";
+  action: "opted_in" | "opted_out" | "toggle_changed" | "data_deleted";
   detail: string;
   timestamp: string;
 }

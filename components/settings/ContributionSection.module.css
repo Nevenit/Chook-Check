@@ -1,0 +1,80 @@
+.toggleCard {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.toggleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toggleLabel {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.toggleDescription {
+  color: #666;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.infoBox {
+  background: #f0faf2;
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.infoTitle {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: #1a7a2e;
+}
+
+.infoText {
+  font-size: 12px;
+  color: #444;
+  line-height: 1.6;
+}
+
+.contextTitle {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.contextGroup {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.contextItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.contextItem:last-child {
+  border-bottom: none;
+}
+
+.contextLabel {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.contextDescription {
+  color: #888;
+  font-size: 11px;
+}

@@ -1,0 +1,36 @@
+.list {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.detail {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: #888;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.emptyState {
+  color: #888;
+  font-size: 13px;
+  padding: 16px 0;
+}
