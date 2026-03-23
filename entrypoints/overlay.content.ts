@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { getProductIdFromUrl } from "@/lib/product-id";
+import { getProductIdFromUrl, getProductIdFromDom } from "@/lib/product-id";
 import { onUrlChange } from "@/lib/navigation";
 import { findPriceElement } from "@/lib/overlay-selectors";
 import { OverlayRoot } from "@/components/overlay/OverlayRoot";
@@ -20,6 +20,8 @@ export default defineContentScript({
   main() {
     let container: HTMLDivElement | null = null;
     let root: Root | null = null;
+    let currentProductId: string | null = null;
+    let observer: MutationObserver | null = null;
 
     function cleanup() {
       if (root) {
@@ -30,13 +32,17 @@ export default defineContentScript({
         container.remove();
         container = null;
       }
+      currentProductId = null;
     }
 
     function inject() {
-      cleanup();
-
-      const productId = getProductIdFromUrl(window.location.href);
+      const productId =
+        getProductIdFromUrl(window.location.href) ?? getProductIdFromDom();
       if (!productId) return;
+      if (productId === currentProductId) return;
+
+      cleanup();
+      currentProductId = productId;
 
       container = document.createElement("div");
       container.id = "chook-check-overlay";
@@ -67,10 +73,42 @@ export default defineContentScript({
       root.render(createElement(OverlayRoot, { productId }));
     }
 
+    // Watch for JSON-LD scripts added dynamically (SPA product views)
+    observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (
+            node instanceof HTMLScriptElement &&
+            node.type === "application/ld+json"
+          ) {
+            inject();
+            return;
+          }
+          // Also check children (e.g. a container div with a script inside)
+          if (node instanceof HTMLElement) {
+            const ldScript = node.querySelector?.(
+              'script[type="application/ld+json"]',
+            );
+            if (ldScript) {
+              inject();
+              return;
+            }
+          }
+        }
+      }
+    });
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+
     // Inject on initial load (if on a product page)
     inject();
 
     // Re-inject on SPA navigation
-    onUrlChange(() => inject());
+    onUrlChange(() => {
+      cleanup();
+      inject();
+    });
   },
 });

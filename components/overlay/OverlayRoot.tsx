@@ -22,7 +22,9 @@ export function OverlayRoot({ productId }: { productId: string }) {
       browser.runtime.sendMessage({ type: "GET_PRODUCT_DATA", productId }),
       timeout,
     ])
-      .then((response: ProductData) => setData(response))
+      .then((response: ProductData) => {
+        setData(response);
+      })
       .catch(() => {
         setError(true);
         setData({ history: [], stats: null });

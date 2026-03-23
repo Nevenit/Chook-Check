@@ -3,8 +3,11 @@ let patched = false;
 let listenerCount = 0;
 let originalPushState: typeof history.pushState | null = null;
 let originalReplaceState: typeof history.replaceState | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let lastKnownUrl = "";
 
 function dispatchUrlChange(): void {
+  lastKnownUrl = window.location.href;
   window.dispatchEvent(new CustomEvent(URL_CHANGE_EVENT));
 }
 
@@ -28,6 +31,16 @@ function ensurePatched(): void {
   };
 
   window.addEventListener("popstate", dispatchUrlChange);
+
+  // Fallback: poll for URL changes not caught by pushState/replaceState patching.
+  // SPA routers (Next.js, Angular) may cache the original pushState before our
+  // content script loads, bypassing our patch entirely.
+  lastKnownUrl = window.location.href;
+  pollTimer = setInterval(() => {
+    if (window.location.href !== lastKnownUrl) {
+      dispatchUrlChange();
+    }
+  }, 500);
 }
 
 function restorePatches(): void {
@@ -35,6 +48,10 @@ function restorePatches(): void {
   if (originalPushState) history.pushState = originalPushState;
   if (originalReplaceState) history.replaceState = originalReplaceState;
   window.removeEventListener("popstate", dispatchUrlChange);
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
   patched = false;
   originalPushState = null;
   originalReplaceState = null;
