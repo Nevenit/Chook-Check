@@ -80,6 +80,7 @@ export async function deleteAllLocalData(db: ChookCheckDB): Promise<void> {
     shareCity: false,
     shareStore: false,
     linkAccount: false,
+    onboardingDismissed: false,
     consentLog: [
       ...preservedLog,
       {
