@@ -21,7 +21,9 @@ beforeAll(() => {
 
 // Mock the db module
 vi.mock("@/lib/db", () => ({
-  db: {},
+  db: {
+    sharingLog: { toArray: vi.fn().mockResolvedValue([]) },
+  },
 }));
 
 // Mock settings module
@@ -36,6 +38,7 @@ vi.mock("@/lib/settings", () => ({
     shareStore: false,
     linkAccount: false,
     consentLog: [],
+    onboardingDismissed: false,
   }),
   updateSetting: vi.fn().mockResolvedValue(undefined),
   deleteAllLocalData: vi.fn().mockResolvedValue(undefined),
@@ -151,8 +154,18 @@ describe("DataSummarySection", () => {
 
 describe("SharingLogSection", () => {
   it("renders empty state", () => {
-    render(<SharingLogSection />);
+    render(<SharingLogSection events={[]} />);
     expect(screen.getByText(/no data has been shared/i)).toBeDefined();
+  });
+
+  it("renders sharing events", () => {
+    const events = [
+      { id: 1, timestamp: "2026-03-24T10:00:00Z", observationCount: 5, status: "success" as const },
+      { id: 2, timestamp: "2026-03-24T11:00:00Z", observationCount: 3, status: "error" as const, errorMessage: "Network error" },
+    ];
+    render(<SharingLogSection events={events} />);
+    expect(screen.getByText(/5 observations/)).toBeDefined();
+    expect(screen.getByText(/Network error/)).toBeDefined();
   });
 });
 
@@ -185,16 +198,27 @@ describe("ConsentHistorySection", () => {
 
 describe("DataManagementSection", () => {
   it("renders delete local data button", () => {
-    render(<DataManagementSection onDataDeleted={() => {}} />);
+    render(<DataManagementSection onDataDeleted={() => {}} contributorId="" />);
     expect(
       screen.getByRole("button", { name: /delete all local data/i }),
     ).toBeDefined();
   });
 
-  it("renders disabled server deletion button", () => {
-    render(<DataManagementSection onDataDeleted={() => {}} />);
+  it("renders disabled server deletion button when no contributorId", () => {
+    render(<DataManagementSection onDataDeleted={() => {}} contributorId="" />);
     const btn = screen.getByRole("button", { name: /request server deletion/i });
     expect(btn.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("renders enabled server deletion button when contributorId exists", () => {
+    render(
+      <DataManagementSection
+        onDataDeleted={() => {}}
+        contributorId="00000000-0000-0000-0000-000000000001"
+      />,
+    );
+    const btn = screen.getByRole("button", { name: /request server deletion/i });
+    expect(btn.hasAttribute("disabled")).toBe(false);
   });
 });
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { db } from "@/lib/db";
 import { getSettings, updateSetting } from "@/lib/settings";
 import { getStorageStats } from "@/lib/data";
-import type { UserSettings } from "@/lib/types";
+import type { UserSettings, SharingEvent } from "@/lib/types";
 import { ContributionSection } from "./ContributionSection";
 import { DataSummarySection } from "./DataSummarySection";
 import { SharingLogSection } from "./SharingLogSection";
@@ -33,6 +33,7 @@ export function SettingsPage() {
     distinctProducts: 0,
     newestDate: null,
   });
+  const [sharingEvents, setSharingEvents] = useState<SharingEvent[]>([]);
   const [activeSection, setActiveSection] = useState<string>("contribution");
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -44,6 +45,8 @@ export function SettingsPage() {
       distinctProducts: st.distinctProducts,
       newestDate: st.newestDate,
     });
+    const events = await db.sharingLog.toArray();
+    setSharingEvents(events);
   }, []);
 
   useEffect(() => {
@@ -136,7 +139,7 @@ export function SettingsPage() {
           <p className={styles.sectionDescription}>
             A record of every batch of observations sent to the community API.
           </p>
-          <SharingLogSection />
+          <SharingLogSection events={sharingEvents} />
         </section>
 
         <section
@@ -160,7 +163,7 @@ export function SettingsPage() {
           <p className={styles.sectionDescription}>
             Delete your data locally or request server-side deletion.
           </p>
-          <DataManagementSection onDataDeleted={loadData} />
+          <DataManagementSection onDataDeleted={loadData} contributorId={settings.contributorId} />
         </section>
 
         <section
