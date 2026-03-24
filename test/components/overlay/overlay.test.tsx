@@ -40,8 +40,80 @@ describe("OverlayPanel", () => {
     expect(screen.getByText(/First observation recorded/)).toBeDefined();
   });
 
-  it("shows community placeholder", () => {
+  it("shows community stats when quorum is met", () => {
     render(
+      <OverlayPanel
+        productName="Test"
+        history={[]}
+        stats={null}
+        currentPriceCents={350}
+        onClose={() => {}}
+        communityStats={{
+          productId: "woolworths:1",
+          productName: "Test",
+          brand: null,
+          storeChain: "woolworths",
+          quorum: true,
+          currentMedianCents: 750,
+          minCents: 700,
+          maxCents: 800,
+          observationCount: 10,
+          contributorCount: 5,
+          priceHistory: [],
+          promoFrequency: {},
+        }}
+      />,
+    );
+    expect(screen.getByText("Community")).toBeDefined();
+    expect(screen.getByText("$7.50")).toBeDefined(); // median
+    expect(screen.getByText(/5 contributors/)).toBeDefined();
+  });
+
+  it("shows quorum message when quorum not met", () => {
+    render(
+      <OverlayPanel
+        productName="Test"
+        history={[]}
+        stats={null}
+        currentPriceCents={350}
+        onClose={() => {}}
+        communityStats={{
+          productId: "woolworths:1",
+          productName: "Test",
+          brand: null,
+          storeChain: "woolworths",
+          quorum: false,
+          currentMedianCents: null,
+          minCents: null,
+          maxCents: null,
+          observationCount: 2,
+          contributorCount: 2,
+          priceHistory: [],
+          promoFrequency: {},
+        }}
+      />,
+    );
+    expect(screen.getByText(/Not enough community data/)).toBeDefined();
+    expect(screen.getByText(/2 of 3/)).toBeDefined();
+  });
+
+  it("shows loading spinner when communityLoading is true", () => {
+    render(
+      <OverlayPanel
+        productName="Test"
+        history={[]}
+        stats={null}
+        currentPriceCents={350}
+        onClose={() => {}}
+        communityLoading={true}
+      />,
+    );
+    expect(screen.getByText("Community")).toBeDefined();
+    expect(screen.getByText(/Loading/)).toBeDefined();
+  });
+
+  it("hides community section when no stats and not loading", () => {
+    const { container } = render(
       <OverlayPanel
         productName="Test"
         history={[]}
@@ -50,7 +122,7 @@ describe("OverlayPanel", () => {
         onClose={() => {}}
       />,
     );
-    expect(screen.getByText(/Community data coming soon/)).toBeDefined();
+    expect(container.textContent).not.toContain("Community");
   });
 
   it("calls onClose when close button clicked", () => {
