@@ -36,6 +36,7 @@ describe("settings", () => {
         shareStore: false,
         linkAccount: false,
         consentLog: [],
+        onboardingDismissed: false,
       });
 
       const settings = await getSettings(db);

@@ -62,6 +62,7 @@ const defaultSettings: UserSettings = {
   shareStore: false,
   linkAccount: false,
   consentLog: [],
+  onboardingDismissed: false,
 };
 
 describe("ContributionSection", () => {
