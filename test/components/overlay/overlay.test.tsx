@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { OverlayPanel } from "../../../components/overlay/OverlayPanel";
 import { OverlayBadge } from "../../../components/overlay/OverlayBadge";
+import { Sparkline } from "../../../components/overlay/Sparkline";
 import { makeObservation } from "../../helpers";
 
 describe("OverlayPanel", () => {
@@ -163,5 +164,51 @@ describe("OverlayBadge", () => {
     );
     fireEvent.click(screen.getByText("CC"));
     expect(onClick).toHaveBeenCalledOnce();
+  });
+});
+
+describe("Sparkline", () => {
+  it("renders all-green when onSale is not provided", () => {
+    const { container } = render(<Sparkline prices={[300, 400, 500]} />);
+    const lines = container.querySelectorAll("line");
+    expect(lines.length).toBe(2);
+    lines.forEach((line) => {
+      expect(line.getAttribute("stroke")).toBe("#16a34a");
+    });
+    // Only last-point dot
+    const circles = container.querySelectorAll("circle");
+    expect(circles.length).toBe(1);
+  });
+
+  it("renders amber segments and dots for sale points", () => {
+    const { container } = render(
+      <Sparkline prices={[300, 400, 500]} onSale={[false, true, false]} />,
+    );
+    const lines = container.querySelectorAll("line");
+    expect(lines.length).toBe(2);
+    // Segment to sale point is amber
+    expect(lines[0].getAttribute("stroke")).toBe("#f59e0b");
+    // Segment from sale point to regular is green
+    expect(lines[1].getAttribute("stroke")).toBe("#16a34a");
+    // Sale dot + last-point dot = 2 circles
+    const circles = container.querySelectorAll("circle");
+    expect(circles.length).toBe(2);
+    expect(circles[0].getAttribute("fill")).toBe("#f59e0b");
+  });
+
+  it("renders single sale point in amber", () => {
+    const { container } = render(
+      <Sparkline prices={[300]} onSale={[true]} />,
+    );
+    const circle = container.querySelector("circle");
+    expect(circle?.getAttribute("fill")).toBe("#f59e0b");
+  });
+
+  it("renders single regular point in green", () => {
+    const { container } = render(
+      <Sparkline prices={[300]} onSale={[false]} />,
+    );
+    const circle = container.querySelector("circle");
+    expect(circle?.getAttribute("fill")).toBe("#16a34a");
   });
 });
