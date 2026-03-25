@@ -24,6 +24,7 @@ export function OverlayPanel({
   communityLoading = false,
 }: OverlayPanelProps) {
   const prices = history.map((o) => o.priceCents);
+  const onSale = history.map((o) => o.promoType !== null);
 
   const showCommunity = communityLoading || communityStats != null;
 
@@ -44,7 +45,7 @@ export function OverlayPanel({
         </p>
       ) : (
         <>
-          <Sparkline prices={prices} />
+          <Sparkline prices={prices} onSale={onSale} />
           <div className="cc-panel-stats">
             <div className="cc-panel-row">
               <span className="cc-panel-label">Now</span>
