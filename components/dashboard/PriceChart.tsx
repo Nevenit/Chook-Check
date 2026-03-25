@@ -5,6 +5,11 @@ import styles from "./PriceChart.module.css";
 
 Chart.register(...registerables);
 
+const GREEN = "#1a7a2e";
+const GREEN_FILL = "rgba(26, 122, 46, 0.1)";
+const AMBER = "#f59e0b";
+const AMBER_FILL = "rgba(245, 158, 11, 0.15)";
+
 interface PriceChartProps {
   observations: PriceObservation[];
 }
@@ -27,6 +32,11 @@ export function PriceChart({ observations }: PriceChartProps) {
       }),
     );
     const data = sorted.map((o) => o.priceCents / 100);
+    const isSale = sorted.map((o) => o.promoType !== null);
+
+    const pointBackgroundColor = isSale.map((s) => (s ? AMBER : GREEN));
+    const pointBorderColor = pointBackgroundColor;
+    const pointRadius = isSale.map((s) => (s ? 4 : 3));
 
     if (chartRef.current) {
       chartRef.current.destroy();
@@ -40,12 +50,26 @@ export function PriceChart({ observations }: PriceChartProps) {
           {
             label: "Price ($)",
             data,
-            borderColor: "#1a7a2e",
-            backgroundColor: "rgba(26, 122, 46, 0.1)",
+            borderColor: GREEN,
+            backgroundColor: GREEN_FILL,
             fill: true,
             tension: 0.2,
-            pointRadius: 3,
+            pointRadius,
             pointHoverRadius: 5,
+            pointBackgroundColor,
+            pointBorderColor,
+            segment: {
+              borderColor: (ctx) => {
+                const p0Sale = isSale[ctx.p0DataIndex];
+                const p1Sale = isSale[ctx.p1DataIndex];
+                return p0Sale || p1Sale ? AMBER : GREEN;
+              },
+              backgroundColor: (ctx) => {
+                const p0Sale = isSale[ctx.p0DataIndex];
+                const p1Sale = isSale[ctx.p1DataIndex];
+                return p0Sale || p1Sale ? AMBER_FILL : GREEN_FILL;
+              },
+            },
           },
         ],
       },
@@ -56,7 +80,11 @@ export function PriceChart({ observations }: PriceChartProps) {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => `$${ctx.parsed.y.toFixed(2)}`,
+              label: (ctx) => {
+                const price = `$${ctx.parsed.y?.toFixed(2) ?? "0.00"}`;
+                const promo = sorted[ctx.dataIndex]?.promoType;
+                return promo ? `${price} (${promo})` : price;
+              },
             },
           },
         },
