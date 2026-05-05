@@ -147,7 +147,7 @@ describe("OverlayBadge", () => {
     render(
       <OverlayBadge isExpanded={false} priceBelowAvg={false} onClick={() => {}} />,
     );
-    expect(screen.getByText("CC")).toBeDefined();
+    expect(screen.getByText("Chook Check")).toBeDefined();
   });
 
   it("does not render when expanded", () => {
@@ -162,7 +162,7 @@ describe("OverlayBadge", () => {
     render(
       <OverlayBadge isExpanded={false} priceBelowAvg={false} onClick={onClick} />,
     );
-    fireEvent.click(screen.getByText("CC"));
+    fireEvent.click(screen.getByText("Chook Check"));
     expect(onClick).toHaveBeenCalledOnce();
   });
 });

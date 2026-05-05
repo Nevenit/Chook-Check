@@ -4,7 +4,11 @@ interface OverlayBadgeProps {
   onClick: () => void;
 }
 
-export function OverlayBadge({ isExpanded, priceBelowAvg, onClick }: OverlayBadgeProps) {
+export function OverlayBadge({
+  isExpanded,
+  priceBelowAvg,
+  onClick,
+}: OverlayBadgeProps) {
   if (isExpanded) return null;
 
   return (
@@ -13,7 +17,10 @@ export function OverlayBadge({ isExpanded, priceBelowAvg, onClick }: OverlayBadg
       onClick={onClick}
       title="Chook Check — view price history"
     >
-      CC
+      <span className="cc-badge-emoji" aria-hidden="true">
+        🐔
+      </span>
+      <span>Chook Check</span>
     </button>
   );
 }
