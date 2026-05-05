@@ -2,6 +2,16 @@
   "name": "chook-check",
   "version": "0.1.0",
   "description": "Track Australian supermarket prices from Woolworths and Coles",
+  "license": "MIT",
+  "author": "Nevenit <Nevenit@outlook.com>",
+  "homepage": "https://github.com/Nevenit/Chook-Check",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nevenit/Chook-Check.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Nevenit/Chook-Check/issues"
+  },
   "private": true,
   "type": "module",
   "scripts": {
