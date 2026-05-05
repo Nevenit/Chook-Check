@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { getProductIdFromUrl, getProductIdFromDom } from "@/lib/product-id";
 import { onUrlChange } from "@/lib/navigation";
-import { findPriceElement } from "@/lib/overlay-selectors";
+import { waitForPriceElement } from "@/lib/overlay-selectors";
 import { OverlayRoot } from "@/components/overlay/OverlayRoot";
 
 // Import CSS as inline strings for Shadow DOM injection
@@ -35,7 +35,7 @@ export default defineContentScript({
       currentProductId = null;
     }
 
-    function inject() {
+    async function inject() {
       const productId =
         getProductIdFromUrl(window.location.href) ?? getProductIdFromDom();
       if (!productId) return;
@@ -43,6 +43,13 @@ export default defineContentScript({
 
       cleanup();
       currentProductId = productId;
+
+      // Wait up to 3s for the SPA to render the price element. Falls back to
+      // fixed positioning if the selectors don't match in time.
+      const priceEl = await waitForPriceElement(3000);
+
+      // Bail if the URL/product changed during the wait.
+      if (currentProductId !== productId) return;
 
       container = document.createElement("div");
       container.id = "chook-check-overlay";
@@ -57,8 +64,6 @@ export default defineContentScript({
       const mountPoint = document.createElement("div");
       shadow.appendChild(mountPoint);
 
-      // Position near price element or fall back to fixed
-      const priceEl = findPriceElement();
       const isFixed = !priceEl;
       if (priceEl) {
         container.style.position = "relative";
