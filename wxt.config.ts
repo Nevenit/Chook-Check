@@ -12,5 +12,11 @@ export default defineConfig({
       "https://www.woolworths.com.au/*",
       "https://www.coles.com.au/*",
     ],
+    browser_specific_settings: {
+      gecko: {
+        id: "chook-check@nevenit.com",
+        strict_min_version: "115.0",
+      },
+    },
   },
 });
