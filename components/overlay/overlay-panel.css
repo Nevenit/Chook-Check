@@ -9,7 +9,22 @@
   font-size: 13px;
   color: #1a1a1a;
   position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
   z-index: 999999;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.cc-panel-fixed {
+  top: auto;
+  left: auto;
+  bottom: 100%;
+  right: 0;
+  margin-top: 0;
+  margin-bottom: 8px;
 }
 
 .cc-panel-header {

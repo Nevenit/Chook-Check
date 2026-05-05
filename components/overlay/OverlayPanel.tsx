@@ -11,6 +11,7 @@ interface OverlayPanelProps {
   error?: boolean;
   communityStats?: ProductStats | null;
   communityLoading?: boolean;
+  fixed?: boolean;
 }
 
 export function OverlayPanel({
@@ -22,6 +23,7 @@ export function OverlayPanel({
   error = false,
   communityStats,
   communityLoading = false,
+  fixed = false,
 }: OverlayPanelProps) {
   const prices = history.map((o) => o.priceCents);
   const onSale = history.map((o) => o.promoType !== null);
@@ -29,7 +31,7 @@ export function OverlayPanel({
   const showCommunity = communityLoading || communityStats != null;
 
   return (
-    <div className="cc-panel">
+    <div className={fixed ? "cc-panel cc-panel-fixed" : "cc-panel"}>
       <div className="cc-panel-header">
         <span className="cc-panel-title">{productName}</span>
         <button className="cc-panel-close" onClick={onClose}>

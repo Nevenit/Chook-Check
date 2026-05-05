@@ -8,7 +8,13 @@ interface ProductData {
   stats: { min: number; max: number; avg: number; count: number } | null;
 }
 
-export function OverlayRoot({ productId }: { productId: string }) {
+export function OverlayRoot({
+  productId,
+  fixed = false,
+}: {
+  productId: string;
+  fixed?: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [data, setData] = useState<ProductData | null>(null);
   const [error, setError] = useState(false);
@@ -94,6 +100,7 @@ export function OverlayRoot({ productId }: { productId: string }) {
           error={error}
           communityStats={communityStats}
           communityLoading={communityLoading}
+          fixed={fixed}
         />
       )}
     </>

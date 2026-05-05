@@ -59,7 +59,9 @@ export default defineContentScript({
 
       // Position near price element or fall back to fixed
       const priceEl = findPriceElement();
+      const isFixed = !priceEl;
       if (priceEl) {
+        container.style.position = "relative";
         priceEl.insertAdjacentElement("afterend", container);
       } else {
         container.style.position = "fixed";
@@ -70,7 +72,7 @@ export default defineContentScript({
       }
 
       root = createRoot(mountPoint);
-      root.render(createElement(OverlayRoot, { productId }));
+      root.render(createElement(OverlayRoot, { productId, fixed: isFixed }));
     }
 
     // Watch for JSON-LD scripts added dynamically (SPA product views)
