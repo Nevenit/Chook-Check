@@ -27,6 +27,9 @@ export interface UserSettings {
   shareStore: boolean;
   linkAccount: boolean;
   onboardingDismissed: boolean;
+  userState: string;
+  userCity: string;
+  userStoreName: string;
   consentLog: ConsentEvent[];
 }
 

@@ -65,6 +65,14 @@ export async function updateSetting(
   await db.userSettings.update("default", updates);
 }
 
+export async function updateUserContext(
+  db: ChookCheckDB,
+  key: "userState" | "userCity" | "userStoreName",
+  value: string,
+): Promise<void> {
+  await db.userSettings.update("default", { [key]: value });
+}
+
 export async function deleteAllLocalData(db: ChookCheckDB): Promise<void> {
   const current = await getSettings(db);
   const preservedLog = [...current.consentLog];
@@ -81,6 +89,9 @@ export async function deleteAllLocalData(db: ChookCheckDB): Promise<void> {
     shareStore: false,
     linkAccount: false,
     onboardingDismissed: false,
+    userState: "",
+    userCity: "",
+    userStoreName: "",
     consentLog: [
       ...preservedLog,
       {

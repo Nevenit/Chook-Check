@@ -78,3 +78,29 @@
   color: #888;
   font-size: 11px;
 }
+
+.contextInputRow {
+  padding: 0 16px 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.contextItem + .contextInputRow {
+  margin-top: -8px;
+}
+
+.contextInput {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  color: #1a1a1a;
+  box-sizing: border-box;
+}
+
+.contextInput:focus {
+  outline: none;
+  border-color: #16a34a;
+}

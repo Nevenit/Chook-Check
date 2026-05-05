@@ -39,8 +39,12 @@ vi.mock("@/lib/settings", () => ({
     linkAccount: false,
     consentLog: [],
     onboardingDismissed: false,
+    userState: "",
+    userCity: "",
+    userStoreName: "",
   }),
   updateSetting: vi.fn().mockResolvedValue(undefined),
+  updateUserContext: vi.fn().mockResolvedValue(undefined),
   deleteAllLocalData: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -66,6 +70,9 @@ const defaultSettings: UserSettings = {
   linkAccount: false,
   consentLog: [],
   onboardingDismissed: false,
+  userState: "",
+  userCity: "",
+  userStoreName: "",
 };
 
 describe("ContributionSection", () => {

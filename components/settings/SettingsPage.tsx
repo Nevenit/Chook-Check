@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { db } from "@/lib/db";
-import { getSettings, updateSetting } from "@/lib/settings";
+import { getSettings, updateSetting, updateUserContext } from "@/lib/settings";
 import { getStorageStats } from "@/lib/data";
 import type { UserSettings, SharingEvent } from "@/lib/types";
 import { ContributionSection } from "./ContributionSection";
@@ -78,6 +78,15 @@ export function SettingsPage() {
     setSettings(updated);
   }
 
+  async function handleTextChange(
+    key: "userState" | "userCity" | "userStoreName",
+    value: string,
+  ) {
+    await updateUserContext(db, key, value);
+    const updated = await getSettings(db);
+    setSettings(updated);
+  }
+
   function handleNavClick(sectionId: string) {
     sectionRefs.current[sectionId]?.scrollIntoView({ behavior: "smooth" });
   }
@@ -114,7 +123,11 @@ export function SettingsPage() {
             Help other Australians spot unfair pricing by sharing your price
             observations.
           </p>
-          <ContributionSection settings={settings} onToggle={handleToggle} />
+          <ContributionSection
+            settings={settings}
+            onToggle={handleToggle}
+            onTextChange={handleTextChange}
+          />
         </section>
 
         <section

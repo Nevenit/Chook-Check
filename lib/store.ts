@@ -98,6 +98,9 @@ export async function initDefaults(db: ChookCheckDB): Promise<void> {
     shareStore: false,
     linkAccount: false,
     onboardingDismissed: false,
+    userState: "",
+    userCity: "",
+    userStoreName: "",
     consentLog: [],
   });
 }

@@ -37,6 +37,9 @@ describe("settings", () => {
         linkAccount: false,
         consentLog: [],
         onboardingDismissed: false,
+        userState: "",
+        userCity: "",
+        userStoreName: "",
       });
 
       const settings = await getSettings(db);

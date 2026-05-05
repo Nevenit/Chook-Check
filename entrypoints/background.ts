@@ -27,11 +27,24 @@ function detectBrowser(): string {
 function buildSubmitRequest(
   observations: PriceObservation[],
   contributorId: string,
-  settings: { shareBrowser: boolean; shareState: boolean; shareCity: boolean; shareStore: boolean },
+  settings: {
+    shareBrowser: boolean;
+    shareState: boolean;
+    shareCity: boolean;
+    shareStore: boolean;
+    userState: string;
+    userCity: string;
+    userStoreName: string;
+  },
 ): SubmitRequest {
   const context: SubmitRequest["context"] = {};
   if (settings.shareBrowser) context.browser = detectBrowser();
-  // state, city, store not yet available from scraper — omitted
+  if (settings.shareState && settings.userState)
+    context.state = settings.userState;
+  if (settings.shareCity && settings.userCity)
+    context.city = settings.userCity;
+  if (settings.shareStore && settings.userStoreName)
+    context.store = settings.userStoreName;
 
   const hasContext = Object.keys(context).length > 0;
 

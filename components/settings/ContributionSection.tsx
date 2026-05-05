@@ -2,15 +2,23 @@ import type { UserSettings } from "@/lib/types";
 import { ToggleSwitch } from "./ToggleSwitch";
 import styles from "./ContributionSection.module.css";
 
+type TextKey = "userState" | "userCity" | "userStoreName";
+
 interface ContributionSectionProps {
   settings: UserSettings;
   onToggle: (key: keyof UserSettings, value: boolean) => void;
+  onTextChange: (key: TextKey, value: string) => void;
 }
+
+const AU_STATES = ["VIC", "NSW", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
 
 const CONTEXT_TOGGLES: {
   key: keyof UserSettings;
   label: string;
   description: string;
+  textKey?: TextKey;
+  inputType?: "select" | "text";
+  placeholder?: string;
 }[] = [
   {
     key: "shareBrowser",
@@ -22,16 +30,24 @@ const CONTEXT_TOGGLES: {
     key: "shareState",
     label: "State",
     description: "e.g. VIC, NSW — helps detect regional pricing",
+    textKey: "userState",
+    inputType: "select",
   },
   {
     key: "shareCity",
     label: "City / Region",
     description: "e.g. Melbourne, Perth — helps detect city-level pricing",
+    textKey: "userCity",
+    inputType: "text",
+    placeholder: "e.g. Melbourne",
   },
   {
     key: "shareStore",
     label: "Specific store",
     description: "e.g. Coles Fitzroy — helps detect store-level pricing",
+    textKey: "userStoreName",
+    inputType: "text",
+    placeholder: "e.g. Coles Fitzroy",
   },
   {
     key: "linkAccount",
@@ -44,6 +60,7 @@ const CONTEXT_TOGGLES: {
 export function ContributionSection({
   settings,
   onToggle,
+  onTextChange,
 }: ContributionSectionProps) {
   return (
     <div>
@@ -78,21 +95,59 @@ export function ContributionSection({
       </div>
 
       <div className={styles.contextGroup}>
-        {CONTEXT_TOGGLES.map((toggle) => (
-          <div key={toggle.key} className={styles.contextItem}>
-            <div>
-              <div className={styles.contextLabel}>{toggle.label}</div>
-              <div className={styles.contextDescription}>
-                {toggle.description}
+        {CONTEXT_TOGGLES.map((toggle) => {
+          const toggleOn = settings[toggle.key] as boolean;
+          const showInput =
+            toggle.textKey && toggleOn && settings.contributionEnabled;
+
+          return (
+            <div key={toggle.key}>
+              <div className={styles.contextItem}>
+                <div>
+                  <div className={styles.contextLabel}>{toggle.label}</div>
+                  <div className={styles.contextDescription}>
+                    {toggle.description}
+                  </div>
+                </div>
+                <ToggleSwitch
+                  checked={toggleOn}
+                  onChange={(v) => onToggle(toggle.key, v)}
+                  disabled={!settings.contributionEnabled}
+                />
               </div>
+              {showInput && (
+                <div className={styles.contextInputRow}>
+                  {toggle.inputType === "select" ? (
+                    <select
+                      className={styles.contextInput}
+                      value={settings[toggle.textKey!] as string}
+                      onChange={(e) =>
+                        onTextChange(toggle.textKey!, e.target.value)
+                      }
+                    >
+                      <option value="">Select state…</option>
+                      {AU_STATES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      className={styles.contextInput}
+                      value={settings[toggle.textKey!] as string}
+                      onChange={(e) =>
+                        onTextChange(toggle.textKey!, e.target.value)
+                      }
+                      placeholder={toggle.placeholder}
+                    />
+                  )}
+                </div>
+              )}
             </div>
-            <ToggleSwitch
-              checked={settings[toggle.key] as boolean}
-              onChange={(v) => onToggle(toggle.key, v)}
-              disabled={!settings.contributionEnabled}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
