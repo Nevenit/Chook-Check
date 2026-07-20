@@ -6,7 +6,11 @@ interface ToggleSwitchProps {
   disabled?: boolean;
 }
 
-export function ToggleSwitch({ checked, onChange, disabled }: ToggleSwitchProps) {
+export function ToggleSwitch({
+  checked,
+  onChange,
+  disabled,
+}: ToggleSwitchProps) {
   return (
     <button
       type="button"

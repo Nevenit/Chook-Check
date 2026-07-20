@@ -9,7 +9,9 @@ interface DataSummarySectionProps {
   };
 }
 
-function getExtensionUrl(path: string): string {
+type ExtensionPage = "/dashboard.html";
+
+function getExtensionUrl(path: ExtensionPage): string {
   try {
     return browser.runtime.getURL(path);
   } catch {

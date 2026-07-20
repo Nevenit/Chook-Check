@@ -17,7 +17,7 @@ export function AboutSection() {
         Helping Australians track supermarket prices and spot unfair pricing.
       </p>
       <a
-        href="https://github.com/mdryan/chook-check"
+        href="https://github.com/Nevenit/Chook-Check"
         className={styles.link}
         target="_blank"
         rel="noopener noreferrer"

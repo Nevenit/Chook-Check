@@ -13,7 +13,11 @@ export function OnboardingBanner({
   onboardingDismissed,
   onDismiss,
 }: OnboardingBannerProps) {
-  if (contributionEnabled || onboardingDismissed || distinctProducts < THRESHOLD) {
+  if (
+    contributionEnabled ||
+    onboardingDismissed ||
+    distinctProducts < THRESHOLD
+  ) {
     return null;
   }
 
@@ -28,11 +32,16 @@ export function OnboardingBanner({
         fontSize: 13,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "start",
+        }}
+      >
         <div>
-          You've tracked{" "}
-          <strong>{distinctProducts} products</strong>! Help other Australians
-          by sharing your price observations.
+          You've tracked <strong>{distinctProducts} products</strong>! Help
+          other Australians by sharing your price observations.
         </div>
         <button
           aria-label="dismiss"

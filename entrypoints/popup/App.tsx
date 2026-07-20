@@ -9,6 +9,15 @@ import { OnboardingBanner } from "@/components/popup/OnboardingBanner";
 import { getSettings } from "@/lib/settings";
 import { saveSettings } from "@/lib/store";
 import type { PriceObservation, UserSettings } from "@/lib/types";
+import type { CommunitySnapshot } from "@/lib/types";
+import { formatPrice } from "@/components/shared/formatPrice";
+
+interface ActiveProductData {
+  productId: string;
+  history: PriceObservation[];
+  stats: { min: number; max: number; avg: number; count: number } | null;
+  community: CommunitySnapshot | null;
+}
 
 export default function App() {
   const [stats, setStats] = useState<{
@@ -20,14 +29,19 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [activeProduct, setActiveProduct] = useState<ActiveProductData | null>(
+    null,
+  );
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       getStorageStats(db),
       getRecentObservations(db, 10),
       getSettings(db),
+      browser.runtime.sendMessage({ type: "GET_ACTIVE_PRODUCT_DATA" }),
     ])
-      .then(([storageStats, recent, userSettings]) => {
+      .then(([storageStats, recent, userSettings, active]) => {
         setStats({
           distinctProducts: storageStats.distinctProducts,
           totalObservations: storageStats.totalObservations,
@@ -35,6 +49,7 @@ export default function App() {
         });
         setObservations(recent);
         setSettings(userSettings);
+        setActiveProduct(active as ActiveProductData | null);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -42,7 +57,42 @@ export default function App() {
 
   async function handleDismissOnboarding() {
     await saveSettings(db, { onboardingDismissed: true });
-    setSettings((prev) => prev ? { ...prev, onboardingDismissed: true } : prev);
+    setSettings((prev) =>
+      prev ? { ...prev, onboardingDismissed: true } : prev,
+    );
+  }
+
+  async function refreshActiveProduct() {
+    setActiveProduct(
+      (await browser.runtime.sendMessage({
+        type: "GET_ACTIVE_PRODUCT_DATA",
+      })) as ActiveProductData | null,
+    );
+  }
+
+  async function handleSnapshotRefresh() {
+    try {
+      const count = await browser.runtime.sendMessage({
+        type: "SYNC_COMMUNITY_SNAPSHOT",
+      });
+      await refreshActiveProduct();
+      setActionMessage(
+        `Community snapshot refreshed (${count} products updated).`,
+      );
+    } catch {
+      setActionMessage(
+        "Community downloads are disabled or the refresh failed.",
+      );
+    }
+  }
+
+  async function handleShowOverlay() {
+    try {
+      await browser.runtime.sendMessage({ type: "ACTIVATE_INLINE_OVERLAY" });
+      setActionMessage("Inline UI added after the pre-UI price was saved.");
+    } catch {
+      setActionMessage("The inline UI could not be shown on this tab.");
+    }
   }
 
   if (loading) return null;
@@ -53,7 +103,9 @@ export default function App() {
       {settings && (
         <OnboardingBanner
           distinctProducts={stats.distinctProducts}
-          contributionEnabled={settings.contributionEnabled}
+          contributionEnabled={
+            settings.historyContributionEnabled || settings.fairnessStudyEnabled
+          }
           onboardingDismissed={settings.onboardingDismissed}
           onDismiss={handleDismissOnboarding}
         />
@@ -63,12 +115,56 @@ export default function App() {
         totalObservations={error ? -1 : stats.totalObservations}
         byChain={error ? {} : stats.byChain}
       />
+      {activeProduct && (
+        <section
+          style={{
+            border: "1px solid #ddd",
+            borderRadius: 8,
+            margin: "12px 0",
+            padding: 12,
+          }}
+        >
+          <strong>
+            {activeProduct.history.at(-1)?.productName ??
+              activeProduct.productId}
+          </strong>
+          <p style={{ margin: "6px 0", fontSize: 13 }}>
+            Current local price:{" "}
+            {activeProduct.history.at(-1)
+              ? formatPrice(activeProduct.history.at(-1)!.priceCents)
+              : "not captured yet"}
+            <br />
+            Local observations: {activeProduct.history.length}
+            <br />
+            Community median:{" "}
+            {activeProduct.community?.currentMedianCents
+              ? formatPrice(activeProduct.community.currentMedianCents)
+              : "not available at the privacy threshold"}
+          </p>
+          {settings?.communityDownloadsEnabled && (
+            <button onClick={handleSnapshotRefresh}>
+              Refresh community snapshot
+            </button>
+          )}
+          {settings?.inlineOverlayEnabled && (
+            <button onClick={handleShowOverlay} style={{ marginLeft: 8 }}>
+              Show inline UI
+            </button>
+          )}
+          {actionMessage && <p style={{ fontSize: 12 }}>{actionMessage}</p>}
+        </section>
+      )}
       {error ? (
         <p style={{ color: "#888", fontSize: 13 }}>Unable to load data.</p>
       ) : (
         <ObservationList observations={observations} />
       )}
-      <PopupFooter />
+      <PopupFooter
+        contributing={Boolean(
+          settings?.historyContributionEnabled ||
+          settings?.fairnessStudyEnabled,
+        )}
+      />
     </div>
   );
 }

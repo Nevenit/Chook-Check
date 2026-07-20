@@ -50,8 +50,14 @@ export function ProductsView({ onSelectProduct }: ProductsViewProps) {
           cmp = a.latestPriceCents - b.latestPriceCents;
           break;
         case "change": {
-          const ac = a.previousPriceCents != null ? a.latestPriceCents - a.previousPriceCents : 0;
-          const bc = b.previousPriceCents != null ? b.latestPriceCents - b.previousPriceCents : 0;
+          const ac =
+            a.previousPriceCents != null
+              ? a.latestPriceCents - a.previousPriceCents
+              : 0;
+          const bc =
+            b.previousPriceCents != null
+              ? b.latestPriceCents - b.previousPriceCents
+              : 0;
           cmp = ac - bc;
           break;
         }
@@ -101,25 +107,40 @@ export function ProductsView({ onSelectProduct }: ProductsViewProps) {
 
       {sorted.length === 0 ? (
         <p className={styles.emptyState}>
-          {search ? "No products match your search." : "No products tracked yet."}
+          {search
+            ? "No products match your search."
+            : "No products tracked yet."}
         </p>
       ) : (
         <table className={styles.table}>
           <thead>
             <tr>
-              <th onClick={() => handleSort("name")}>Product{renderSortIndicator("name")}</th>
-              <th onClick={() => handleSort("chain")}>Chain{renderSortIndicator("chain")}</th>
-              <th onClick={() => handleSort("price")}>Price{renderSortIndicator("price")}</th>
-              <th onClick={() => handleSort("change")}>Change{renderSortIndicator("change")}</th>
-              <th onClick={() => handleSort("count")}>Obs{renderSortIndicator("count")}</th>
-              <th onClick={() => handleSort("lastSeen")}>Last Seen{renderSortIndicator("lastSeen")}</th>
+              <th onClick={() => handleSort("name")}>
+                Product{renderSortIndicator("name")}
+              </th>
+              <th onClick={() => handleSort("chain")}>
+                Chain{renderSortIndicator("chain")}
+              </th>
+              <th onClick={() => handleSort("price")}>
+                Price{renderSortIndicator("price")}
+              </th>
+              <th onClick={() => handleSort("change")}>
+                Change{renderSortIndicator("change")}
+              </th>
+              <th onClick={() => handleSort("count")}>
+                Obs{renderSortIndicator("count")}
+              </th>
+              <th onClick={() => handleSort("lastSeen")}>
+                Last Seen{renderSortIndicator("lastSeen")}
+              </th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((p) => {
-              const changeCents = p.previousPriceCents != null
-                ? p.latestPriceCents - p.previousPriceCents
-                : null;
+              const changeCents =
+                p.previousPriceCents != null
+                  ? p.latestPriceCents - p.previousPriceCents
+                  : null;
               return (
                 <tr
                   key={p.productId}
@@ -135,9 +156,13 @@ export function ProductsView({ onSelectProduct }: ProductsViewProps) {
                     {changeCents == null || changeCents === 0 ? (
                       <span className={styles.changeNone}>—</span>
                     ) : changeCents > 0 ? (
-                      <span className={styles.changeUp}>+{formatPrice(changeCents)}</span>
+                      <span className={styles.changeUp}>
+                        +{formatPrice(changeCents)}
+                      </span>
                     ) : (
-                      <span className={styles.changeDown}>-{formatPrice(Math.abs(changeCents))}</span>
+                      <span className={styles.changeDown}>
+                        -{formatPrice(Math.abs(changeCents))}
+                      </span>
                     )}
                   </td>
                   <td>{p.observationCount}</td>

@@ -11,7 +11,10 @@ interface ProductDetailViewProps {
   onBack: () => void;
 }
 
-export function ProductDetailView({ productId, onBack }: ProductDetailViewProps) {
+export function ProductDetailView({
+  productId,
+  onBack,
+}: ProductDetailViewProps) {
   const [history, setHistory] = useState<PriceObservation[]>([]);
   const [stats, setStats] = useState<{
     min: number;
@@ -22,7 +25,10 @@ export function ProductDetailView({ productId, onBack }: ProductDetailViewProps)
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getProductHistory(db, productId), getProductStats(db, productId)])
+    Promise.all([
+      getProductHistory(db, productId),
+      getProductStats(db, productId),
+    ])
       .then(([h, s]) => {
         setHistory(h);
         setStats(s);
@@ -99,7 +105,9 @@ export function ProductDetailView({ productId, onBack }: ProductDetailViewProps)
                     })}
                   </td>
                   <td>{formatPrice(obs.priceCents)}</td>
-                  <td>{obs.wasPriceCents ? formatPrice(obs.wasPriceCents) : "—"}</td>
+                  <td>
+                    {obs.wasPriceCents ? formatPrice(obs.wasPriceCents) : "—"}
+                  </td>
                   <td>
                     {obs.unitPriceCents
                       ? `${formatPrice(obs.unitPriceCents)}${obs.unitMeasure ? ` / ${obs.unitMeasure}` : ""}`

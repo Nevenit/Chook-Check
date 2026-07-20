@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { OverlayBadge } from "./OverlayBadge";
 import { OverlayPanel } from "./OverlayPanel";
-import type { PriceObservation, ProductStats } from "@/lib/types";
+import type { PriceObservation } from "@/lib/types";
 
 interface ProductData {
   history: PriceObservation[];
@@ -18,8 +18,6 @@ export function OverlayRoot({
   const [expanded, setExpanded] = useState(false);
   const [data, setData] = useState<ProductData | null>(null);
   const [error, setError] = useState(false);
-  const [communityStats, setCommunityStats] = useState<ProductStats | null>(null);
-  const [communityLoading, setCommunityLoading] = useState(false);
 
   // Fetch local data on mount
   useEffect(() => {
@@ -39,41 +37,6 @@ export function OverlayRoot({
         setData({ history: [], stats: null });
       });
   }, [productId]);
-
-  // Reset community stats when product changes
-  useEffect(() => {
-    setCommunityStats(null);
-    setCommunityLoading(false);
-  }, [productId]);
-
-  // Fetch community data when panel expands
-  useEffect(() => {
-    if (!expanded) return;
-    if (communityStats !== null) return; // already fetched
-
-    setCommunityLoading(true);
-
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 5000),
-    );
-
-    Promise.race([
-      browser.runtime.sendMessage({
-        type: "GET_COMMUNITY_STATS",
-        productId,
-      }),
-      timeout,
-    ])
-      .then((response: ProductStats | null) => {
-        setCommunityStats(response);
-      })
-      .catch(() => {
-        // Silently fail — local data still shown
-      })
-      .finally(() => {
-        setCommunityLoading(false);
-      });
-  }, [expanded, productId, communityStats]);
 
   if (!data) return null;
 
@@ -98,8 +61,8 @@ export function OverlayRoot({
           currentPriceCents={currentPrice}
           onClose={() => setExpanded(false)}
           error={error}
-          communityStats={communityStats}
-          communityLoading={communityLoading}
+          communityStats={null}
+          communityLoading={false}
           fixed={fixed}
         />
       )}

@@ -27,7 +27,11 @@ export function SharingLogSection({ events }: SharingLogSectionProps) {
           <span className={styles.logTime}>
             {new Date(event.timestamp).toLocaleString()}
           </span>
-          <span className={event.status === "success" ? styles.logSuccess : styles.logError}>
+          <span
+            className={
+              event.status === "success" ? styles.logSuccess : styles.logError
+            }
+          >
             {event.status === "success"
               ? `${event.observationCount} observations shared`
               : `Error: ${event.errorMessage ?? "Unknown error"}`}

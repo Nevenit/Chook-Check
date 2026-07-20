@@ -1,121 +1,115 @@
 import { createElement } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { getProductIdFromUrl, getProductIdFromDom } from "@/lib/product-id";
-import { onUrlChange } from "@/lib/navigation";
+import { createRoot } from "react-dom/client";
 import { waitForPriceElement } from "@/lib/overlay-selectors";
 import { OverlayRoot } from "@/components/overlay/OverlayRoot";
-
-// Import CSS as inline strings for Shadow DOM injection
+import { scrapeColes } from "@/lib/scrapers/coles";
+import { scrapeWoolworths } from "@/lib/scrapers/woolworths";
+import { isAllowedRetailerRoute } from "@/lib/retailer-routes";
+import { enrichObservationWithPageContext } from "@/lib/page-context";
+import type { PriceObservation, StoreChain } from "@/lib/types";
 import sparklineCss from "@/components/overlay/sparkline.css?inline";
 import panelCss from "@/components/overlay/overlay-panel.css?inline";
 import badgeCss from "@/components/overlay/overlay-badge.css?inline";
 
 export default defineContentScript({
-  matches: [
-    "https://www.woolworths.com.au/*",
-    "https://www.coles.com.au/*",
-  ],
+  matches: ["https://www.woolworths.com.au/*", "https://www.coles.com.au/*"],
   runAt: "document_idle",
+  registration: "runtime",
+  noScriptStartedPostMessage: true,
 
   main() {
-    let container: HTMLDivElement | null = null;
-    let root: Root | null = null;
-    let currentProductId: string | null = null;
-    let observer: MutationObserver | null = null;
-
-    function cleanup() {
-      if (root) {
-        root.unmount();
-        root = null;
-      }
-      if (container) {
-        container.remove();
-        container = null;
-      }
-      currentProductId = null;
-    }
-
-    async function inject() {
-      const productId =
-        getProductIdFromUrl(window.location.href) ?? getProductIdFromDom();
-      if (!productId) return;
-      if (productId === currentProductId) return;
-
-      cleanup();
-      currentProductId = productId;
-
-      // Wait up to 3s for the SPA to render the price element. Falls back to
-      // fixed positioning if the selectors don't match in time.
-      const priceEl = await waitForPriceElement(3000);
-
-      // Bail if the URL/product changed during the wait.
-      if (currentProductId !== productId) return;
-
-      container = document.createElement("div");
-      container.id = "chook-check-overlay";
-      const shadow = container.attachShadow({ mode: "open" });
-
-      // Inject styles
-      const style = document.createElement("style");
-      style.textContent = [sparklineCss, panelCss, badgeCss].join("\n");
-      shadow.appendChild(style);
-
-      // React mount point
-      const mountPoint = document.createElement("div");
-      shadow.appendChild(mountPoint);
-
-      const isFixed = !priceEl;
-      if (priceEl) {
-        container.style.position = "relative";
-        priceEl.insertAdjacentElement("afterend", container);
-      } else {
-        container.style.position = "fixed";
-        container.style.bottom = "20px";
-        container.style.right = "20px";
-        container.style.zIndex = "999999";
-        document.body.appendChild(container);
-      }
-
-      root = createRoot(mountPoint);
-      root.render(createElement(OverlayRoot, { productId, fixed: isFixed }));
-    }
-
-    // Watch for JSON-LD scripts added dynamically (SPA product views)
-    observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (
-            node instanceof HTMLScriptElement &&
-            node.type === "application/ld+json"
-          ) {
-            inject();
-            return;
-          }
-          // Also check children (e.g. a container div with a script inside)
-          if (node instanceof HTMLElement) {
-            const ldScript = node.querySelector?.(
-              'script[type="application/ld+json"]',
-            );
-            if (ldScript) {
-              inject();
-              return;
-            }
-          }
-        }
-      }
-    });
-    observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-    });
-
-    // Inject on initial load (if on a product page)
-    inject();
-
-    // Re-inject on SPA navigation
-    onUrlChange(() => {
-      cleanup();
-      inject();
-    });
+    return showOverlay();
   },
 });
+
+async function showOverlay(): Promise<void> {
+  const chain = getChain();
+  if (!chain || !isAllowedRetailerRoute(window.location.href, chain)) {
+    throw new Error(
+      "Inline overlay is only available on approved retailer routes",
+    );
+  }
+
+  const comparisonId = crypto.randomUUID();
+  const preUi = capture(chain, "pre_ui", comparisonId);
+  if (!preUi) throw new Error("No product price was found on this page");
+
+  // Persist the retailer-provided price before making any page-visible change.
+  await browser.runtime.sendMessage({
+    type: "PRICE_OBSERVATION",
+    data: preUi,
+  });
+
+  const priceElement = await waitForPriceElement(3000);
+  const container = document.createElement("div");
+  container.setAttribute(`data-${crypto.randomUUID()}`, comparisonId);
+  const shadow = container.attachShadow({ mode: "closed" });
+  const style = document.createElement("style");
+  style.textContent = [sparklineCss, panelCss, badgeCss].join("\n");
+  const mountPoint = document.createElement("div");
+  shadow.append(style, mountPoint);
+
+  if (priceElement) {
+    container.style.position = "relative";
+    priceElement.insertAdjacentElement("afterend", container);
+  } else {
+    container.style.position = "fixed";
+    container.style.bottom = "20px";
+    container.style.right = "20px";
+    container.style.zIndex = "999999";
+    document.body.appendChild(container);
+  }
+
+  const root = createRoot(mountPoint);
+  root.render(
+    createElement(OverlayRoot, {
+      productId: preUi.productId,
+      fixed: !priceElement,
+    }),
+  );
+
+  let debounceTimer: ReturnType<typeof setTimeout>;
+  const capturedPrices = new Set([preUi.priceCents]);
+  const priceObserver = new MutationObserver(() => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const postUi = capture(chain, "post_ui", comparisonId);
+      if (!postUi || capturedPrices.has(postUi.priceCents)) return;
+      capturedPrices.add(postUi.priceCents);
+      void browser.runtime.sendMessage({
+        type: "PRICE_OBSERVATION",
+        data: postUi,
+      });
+    }, 400);
+  });
+  priceObserver.observe(document.body, {
+    childList: true,
+    characterData: true,
+    subtree: true,
+  });
+}
+
+function getChain(): StoreChain | null {
+  if (window.location.hostname === "www.woolworths.com.au") return "woolworths";
+  if (window.location.hostname === "www.coles.com.au") return "coles";
+  return null;
+}
+
+function capture(
+  chain: StoreChain,
+  capturePhase: "pre_ui" | "post_ui",
+  comparisonId: string,
+): PriceObservation | null {
+  const observation =
+    chain === "woolworths"
+      ? scrapeWoolworths(document, window.location.href)
+      : scrapeColes(document, window.location.href);
+  if (!observation) return null;
+  return {
+    ...enrichObservationWithPageContext(observation, document),
+    clientObservationId: crypto.randomUUID(),
+    instrumentMode: "user_activated_inline",
+    capturePhase,
+    comparisonId,
+  };
+}

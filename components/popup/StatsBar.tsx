@@ -6,7 +6,11 @@ interface StatsBarProps {
   byChain: Record<string, number>;
 }
 
-export function StatsBar({ distinctProducts, totalObservations, byChain }: StatsBarProps) {
+export function StatsBar({
+  distinctProducts,
+  totalObservations,
+  byChain,
+}: StatsBarProps) {
   const chains = Object.entries(byChain);
   const isError = distinctProducts < 0;
 

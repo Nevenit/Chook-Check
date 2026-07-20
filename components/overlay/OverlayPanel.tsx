@@ -66,9 +66,7 @@ export function OverlayPanel({
               <span className="cc-panel-label">High</span>
               <span className="cc-panel-value">{formatPrice(stats.max)}</span>
             </div>
-            <div className="cc-panel-tracked">
-              Tracked {stats.count} times
-            </div>
+            <div className="cc-panel-tracked">Tracked {stats.count} times</div>
           </div>
         </>
       )}

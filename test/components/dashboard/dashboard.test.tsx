@@ -52,7 +52,9 @@ describe("DashboardLayout", () => {
   it("shows overview tab by default", () => {
     render(<DashboardLayout />);
     expect(
-      screen.getByRole("tab", { name: /overview/i }).getAttribute("aria-selected"),
+      screen
+        .getByRole("tab", { name: /overview/i })
+        .getAttribute("aria-selected"),
     ).toBe("true");
   });
 
@@ -60,10 +62,14 @@ describe("DashboardLayout", () => {
     render(<DashboardLayout />);
     fireEvent.click(screen.getByRole("tab", { name: /products/i }));
     expect(
-      screen.getByRole("tab", { name: /products/i }).getAttribute("aria-selected"),
+      screen
+        .getByRole("tab", { name: /products/i })
+        .getAttribute("aria-selected"),
     ).toBe("true");
     expect(
-      screen.getByRole("tab", { name: /overview/i }).getAttribute("aria-selected"),
+      screen
+        .getByRole("tab", { name: /overview/i })
+        .getAttribute("aria-selected"),
     ).toBe("false");
   });
 });
@@ -113,31 +119,23 @@ describe("OverviewView", () => {
 
   it("renders empty state for price changes", async () => {
     render(<OverviewView onSelectProduct={() => {}} />);
-    expect(
-      await screen.findByText(/no price changes detected/i),
-    ).toBeDefined();
+    expect(await screen.findByText(/no price changes detected/i)).toBeDefined();
   });
 });
 
 describe("ProductDetailView", () => {
   it("renders loading state", () => {
-    render(
-      <ProductDetailView productId="woolworths:123" onBack={() => {}} />,
-    );
+    render(<ProductDetailView productId="woolworths:123" onBack={() => {}} />);
     expect(screen.getByText(/loading/i)).toBeDefined();
   });
 
   it("renders back button", () => {
-    render(
-      <ProductDetailView productId="woolworths:123" onBack={() => {}} />,
-    );
+    render(<ProductDetailView productId="woolworths:123" onBack={() => {}} />);
     expect(screen.getByRole("button", { name: /back/i })).toBeDefined();
   });
 
   it("renders empty state for unknown product", async () => {
-    render(
-      <ProductDetailView productId="woolworths:999" onBack={() => {}} />,
-    );
+    render(<ProductDetailView productId="woolworths:999" onBack={() => {}} />);
     expect(await screen.findByText(/no data found/i)).toBeDefined();
   });
 });

@@ -145,14 +145,22 @@ describe("OverlayPanel", () => {
 describe("OverlayBadge", () => {
   it("renders when not expanded", () => {
     render(
-      <OverlayBadge isExpanded={false} priceBelowAvg={false} onClick={() => {}} />,
+      <OverlayBadge
+        isExpanded={false}
+        priceBelowAvg={false}
+        onClick={() => {}}
+      />,
     );
     expect(screen.getByText("Chook Check")).toBeDefined();
   });
 
   it("does not render when expanded", () => {
     const { container } = render(
-      <OverlayBadge isExpanded={true} priceBelowAvg={false} onClick={() => {}} />,
+      <OverlayBadge
+        isExpanded={true}
+        priceBelowAvg={false}
+        onClick={() => {}}
+      />,
     );
     expect(container.querySelector("button")).toBeNull();
   });
@@ -160,7 +168,11 @@ describe("OverlayBadge", () => {
   it("calls onClick when clicked", () => {
     const onClick = vi.fn();
     render(
-      <OverlayBadge isExpanded={false} priceBelowAvg={false} onClick={onClick} />,
+      <OverlayBadge
+        isExpanded={false}
+        priceBelowAvg={false}
+        onClick={onClick}
+      />,
     );
     fireEvent.click(screen.getByText("Chook Check"));
     expect(onClick).toHaveBeenCalledOnce();
@@ -197,17 +209,13 @@ describe("Sparkline", () => {
   });
 
   it("renders single sale point in amber", () => {
-    const { container } = render(
-      <Sparkline prices={[300]} onSale={[true]} />,
-    );
+    const { container } = render(<Sparkline prices={[300]} onSale={[true]} />);
     const circle = container.querySelector("circle");
     expect(circle?.getAttribute("fill")).toBe("#f59e0b");
   });
 
   it("renders single regular point in green", () => {
-    const { container } = render(
-      <Sparkline prices={[300]} onSale={[false]} />,
-    );
+    const { container } = render(<Sparkline prices={[300]} onSale={[false]} />);
     const circle = container.querySelector("circle");
     expect(circle?.getAttribute("fill")).toBe("#16a34a");
   });

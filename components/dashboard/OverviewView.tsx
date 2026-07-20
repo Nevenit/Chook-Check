@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/db";
 import { getStorageStats } from "@/lib/data";
-import {
-  getBiggestPriceChanges,
-  type PriceChange,
-} from "@/lib/data-dashboard";
+import { getBiggestPriceChanges, type PriceChange } from "@/lib/data-dashboard";
 import { formatPrice } from "@/components/shared/formatPrice";
 import { formatRelativeTime } from "@/components/shared/formatTime";
 import styles from "./OverviewView.module.css";
@@ -39,11 +36,15 @@ export function OverviewView({ onSelectProduct }: OverviewViewProps) {
       <section className={styles.section}>
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
-            <div className={styles.statValue}>{stats?.distinctProducts ?? 0}</div>
+            <div className={styles.statValue}>
+              {stats?.distinctProducts ?? 0}
+            </div>
             <div className={styles.statLabel}>Products tracked</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statValue}>{stats?.totalObservations ?? 0}</div>
+            <div className={styles.statValue}>
+              {stats?.totalObservations ?? 0}
+            </div>
             <div className={styles.statLabel}>Price observations</div>
           </div>
           {Object.entries(stats?.byChain ?? {}).map(([chain, count]) => (
@@ -87,7 +88,8 @@ export function OverviewView({ onSelectProduct }: OverviewViewProps) {
                   </span>
                 </div>
                 <div className={styles.changeMeta}>
-                  {formatPrice(c.oldPriceCents)} → {formatPrice(c.newPriceCents)}
+                  {formatPrice(c.oldPriceCents)} →{" "}
+                  {formatPrice(c.newPriceCents)}
                   {" · "}
                   {c.storeChain.charAt(0).toUpperCase() + c.storeChain.slice(1)}
                   {" · "}
@@ -102,7 +104,8 @@ export function OverviewView({ onSelectProduct }: OverviewViewProps) {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Personalisation alerts</h2>
         <p className={styles.emptyState}>
-          Community comparison coming soon — contribute your data to help detect personalised pricing.
+          Community comparison coming soon — contribute your data to help detect
+          personalised pricing.
         </p>
       </section>
     </div>

@@ -28,24 +28,18 @@ vi.mock("@/lib/db", () => ({
 
 // Mock settings module
 vi.mock("@/lib/settings", () => ({
-  getSettings: vi.fn().mockResolvedValue({
-    contributionEnabled: false,
-    contributorId: "",
-    contributorIdMode: "anonymous",
-    shareBrowser: false,
-    shareState: false,
-    shareCity: false,
-    shareStore: false,
-    linkAccount: false,
-    consentLog: [],
-    onboardingDismissed: false,
-    userState: "",
-    userCity: "",
-    userStoreName: "",
-  }),
+  MODE_DISCLOSURES: {
+    communityDownloadsEnabled: "Downloads a bulk snapshot.",
+    historyContributionEnabled: "Uploads pseudonymous price history.",
+    fairnessStudyEnabled: "Uploads selected coarse context.",
+    inlineOverlayEnabled: "Adds user-activated inline UI.",
+  },
+  getSettings: vi.fn().mockImplementation(async () => defaultSettings),
   updateSetting: vi.fn().mockResolvedValue(undefined),
   updateUserContext: vi.fn().mockResolvedValue(undefined),
   deleteAllLocalData: vi.fn().mockResolvedValue(undefined),
+  clearPriceHistory: vi.fn().mockResolvedValue(undefined),
+  clearLocalLogs: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock data functions
@@ -60,58 +54,81 @@ vi.mock("@/lib/data", () => ({
 }));
 
 const defaultSettings: UserSettings = {
-  contributionEnabled: false,
+  communityDownloadsEnabled: false,
+  historyContributionEnabled: false,
+  fairnessStudyEnabled: false,
+  inlineOverlayEnabled: false,
+  consentVersion: "",
+  reconsentRequired: false,
   contributorId: "",
-  contributorIdMode: "anonymous",
+  submitToken: "",
+  deletionToken: "",
+  legacyContributorId: "",
+  pendingServerDeletion: null,
   shareBrowser: false,
   shareState: false,
   shareCity: false,
   shareStore: false,
-  linkAccount: false,
   consentLog: [],
   onboardingDismissed: false,
   userState: "",
   userCity: "",
   userStoreName: "",
+  communitySnapshotSyncedAt: "",
 };
 
 describe("ContributionSection", () => {
-  it("renders main toggle and all 5 context toggles", () => {
+  it("renders four privacy modes and four context toggles", () => {
     render(
-      <ContributionSection settings={defaultSettings} onToggle={() => {}} />,
+      <ContributionSection
+        settings={defaultSettings}
+        onToggle={() => {}}
+        onTextChange={() => {}}
+      />,
     );
-    // 6 total switches: 1 main + 5 context
     const switches = screen.getAllByRole("switch");
-    expect(switches).toHaveLength(6);
+    expect(switches).toHaveLength(8);
   });
 
   it("renders context toggle labels", () => {
     render(
-      <ContributionSection settings={defaultSettings} onToggle={() => {}} />,
+      <ContributionSection
+        settings={defaultSettings}
+        onToggle={() => {}}
+        onTextChange={() => {}}
+      />,
     );
-    expect(screen.getByText("Browser")).toBeDefined();
+    expect(screen.getByText("Browser family")).toBeDefined();
     expect(screen.getByText("State")).toBeDefined();
-    expect(screen.getByText("City / Region")).toBeDefined();
-    expect(screen.getByText("Specific store")).toBeDefined();
-    expect(screen.getByText("Link supermarket account")).toBeDefined();
+    expect(screen.getByText("City / region")).toBeDefined();
+    expect(screen.getByText("Store name or ID")).toBeDefined();
   });
 
-  it("disables context toggles when contribution is off", () => {
+  it("keeps privacy modes enabled and context toggles disabled when fairness study is off", () => {
     render(
-      <ContributionSection settings={defaultSettings} onToggle={() => {}} />,
+      <ContributionSection
+        settings={defaultSettings}
+        onToggle={() => {}}
+        onTextChange={() => {}}
+      />,
     );
     const switches = screen.getAllByRole("switch");
-    // First switch is main toggle (enabled), rest are context (disabled)
-    expect(switches[0].hasAttribute("disabled")).toBe(false);
-    for (let i = 1; i < switches.length; i++) {
+    for (let i = 0; i < 4; i++) {
+      expect(switches[i].hasAttribute("disabled")).toBe(false);
+    }
+    for (let i = 4; i < switches.length; i++) {
       expect(switches[i].hasAttribute("disabled")).toBe(true);
     }
   });
 
-  it("enables context toggles when contribution is on", () => {
-    const settings = { ...defaultSettings, contributionEnabled: true };
+  it("enables context toggles when fairness study is on", () => {
+    const settings = { ...defaultSettings, fairnessStudyEnabled: true };
     render(
-      <ContributionSection settings={settings} onToggle={() => {}} />,
+      <ContributionSection
+        settings={settings}
+        onToggle={() => {}}
+        onTextChange={() => {}}
+      />,
     );
     const switches = screen.getAllByRole("switch");
     for (const toggle of switches) {
@@ -119,21 +136,29 @@ describe("ContributionSection", () => {
     }
   });
 
-  it("calls onToggle when main toggle is clicked", () => {
+  it("calls onToggle when a privacy mode is clicked", () => {
     const onToggle = vi.fn();
     render(
-      <ContributionSection settings={defaultSettings} onToggle={onToggle} />,
+      <ContributionSection
+        settings={defaultSettings}
+        onToggle={onToggle}
+        onTextChange={() => {}}
+      />,
     );
     const switches = screen.getAllByRole("switch");
     fireEvent.click(switches[0]);
-    expect(onToggle).toHaveBeenCalledWith("contributionEnabled", true);
+    expect(onToggle).toHaveBeenCalledWith("communityDownloadsEnabled", true);
   });
 
-  it("renders what gets shared info box", () => {
+  it("explains that contribution is pseudonymous", () => {
     render(
-      <ContributionSection settings={defaultSettings} onToggle={() => {}} />,
+      <ContributionSection
+        settings={defaultSettings}
+        onToggle={() => {}}
+        onTextChange={() => {}}
+      />,
     );
-    expect(screen.getByText(/what gets shared/i)).toBeDefined();
+    expect(screen.getByText(/pseudonymous, not anonymous/i)).toBeDefined();
   });
 });
 
@@ -167,8 +192,19 @@ describe("SharingLogSection", () => {
 
   it("renders sharing events", () => {
     const events = [
-      { id: 1, timestamp: "2026-03-24T10:00:00Z", observationCount: 5, status: "success" as const },
-      { id: 2, timestamp: "2026-03-24T11:00:00Z", observationCount: 3, status: "error" as const, errorMessage: "Network error" },
+      {
+        id: 1,
+        timestamp: "2026-03-24T10:00:00Z",
+        observationCount: 5,
+        status: "success" as const,
+      },
+      {
+        id: 2,
+        timestamp: "2026-03-24T11:00:00Z",
+        observationCount: 3,
+        status: "error" as const,
+        errorMessage: "Network error",
+      },
     ];
     render(<SharingLogSection events={events} />);
     expect(screen.getByText(/5 observations/)).toBeDefined();
@@ -204,27 +240,44 @@ describe("ConsentHistorySection", () => {
 });
 
 describe("DataManagementSection", () => {
-  it("renders delete local data button", () => {
-    render(<DataManagementSection onDataDeleted={() => {}} contributorId="" />);
-    expect(
-      screen.getByRole("button", { name: /delete all local data/i }),
-    ).toBeDefined();
-  });
-
-  it("renders disabled server deletion button when no contributorId", () => {
-    render(<DataManagementSection onDataDeleted={() => {}} contributorId="" />);
-    const btn = screen.getByRole("button", { name: /request server deletion/i });
-    expect(btn.hasAttribute("disabled")).toBe(true);
-  });
-
-  it("renders enabled server deletion button when contributorId exists", () => {
+  it("renders local deletion controls", () => {
     render(
       <DataManagementSection
         onDataDeleted={() => {}}
-        contributorId="00000000-0000-0000-0000-000000000001"
+        settings={defaultSettings}
       />,
     );
-    const btn = screen.getByRole("button", { name: /request server deletion/i });
+    expect(
+      screen.getByRole("button", { name: /clear price history/i }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /clear local logs/i }),
+    ).toBeDefined();
+  });
+
+  it("renders disabled server deletion button when no deletion token", () => {
+    render(
+      <DataManagementSection
+        onDataDeleted={() => {}}
+        settings={defaultSettings}
+      />,
+    );
+    const btn = screen.getByRole("button", {
+      name: /delete raw server contributions/i,
+    });
+    expect(btn.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("renders enabled server deletion button when deletion token exists", () => {
+    render(
+      <DataManagementSection
+        onDataDeleted={() => {}}
+        settings={{ ...defaultSettings, deletionToken: "secret" }}
+      />,
+    );
+    const btn = screen.getByRole("button", {
+      name: /delete raw server contributions/i,
+    });
     expect(btn.hasAttribute("disabled")).toBe(false);
   });
 });
@@ -249,8 +302,12 @@ describe("SettingsPage", () => {
     expect(contributions.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/what's stored locally/i)).toBeDefined();
     expect(screen.getAllByText("Sharing log").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Consent history").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Data management").length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText("Consent history").length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText("Data management").length,
+    ).toBeGreaterThanOrEqual(1);
     const abouts = screen.getAllByText("About");
     expect(abouts.length).toBeGreaterThanOrEqual(1);
   });

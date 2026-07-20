@@ -1,59 +1,90 @@
-import type { UserSettings } from "@/lib/types";
+import type { PrivacyModeKey, UserSettings } from "@/lib/types";
+import { MODE_DISCLOSURES } from "@/lib/settings";
 import { ToggleSwitch } from "./ToggleSwitch";
 import styles from "./ContributionSection.module.css";
 
 type TextKey = "userState" | "userCity" | "userStoreName";
+type ContextToggleKey =
+  | "shareBrowser"
+  | "shareState"
+  | "shareCity"
+  | "shareStore";
 
 interface ContributionSectionProps {
   settings: UserSettings;
-  onToggle: (key: keyof UserSettings, value: boolean) => void;
+  onToggle: (
+    key: PrivacyModeKey | ContextToggleKey,
+    value: boolean,
+  ) => void | Promise<void>;
   onTextChange: (key: TextKey, value: string) => void;
+  error?: string | null;
 }
 
 const AU_STATES = ["VIC", "NSW", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
 
-const CONTEXT_TOGGLES: {
-  key: keyof UserSettings;
+const PRIVACY_MODES: Array<{
+  key: PrivacyModeKey;
+  label: string;
+  summary: string;
+}> = [
+  {
+    key: "communityDownloadsEnabled",
+    label: "Community snapshot downloads",
+    summary: "Download a bulk, privacy-thresholded comparison dataset.",
+  },
+  {
+    key: "historyContributionEnabled",
+    label: "Contribute price history",
+    summary: "Share pseudonymous price and offer observations.",
+  },
+  {
+    key: "fairnessStudyEnabled",
+    label: "Join the fairness study",
+    summary: "Share extra coarse context for matched price comparisons.",
+  },
+  {
+    key: "inlineOverlayEnabled",
+    label: "Allow inline retailer-page UI",
+    summary: "Let you explicitly show an overlay from the toolbar.",
+  },
+];
+
+const CONTEXT_TOGGLES: Array<{
+  key: ContextToggleKey;
   label: string;
   description: string;
   textKey?: TextKey;
   inputType?: "select" | "text";
   placeholder?: string;
-}[] = [
+}> = [
   {
     key: "shareBrowser",
-    label: "Browser",
-    description:
-      "e.g. Chrome, Firefox — helps detect browser-based price differences",
+    label: "Browser family",
+    description: "Chrome, Firefox, Edge, or Safari; never the full user-agent.",
   },
   {
     key: "shareState",
     label: "State",
-    description: "e.g. VIC, NSW — helps detect regional pricing",
+    description: "A coarse state used to match regional cohorts.",
     textKey: "userState",
     inputType: "select",
   },
   {
     key: "shareCity",
-    label: "City / Region",
-    description: "e.g. Melbourne, Perth — helps detect city-level pricing",
+    label: "City / region",
+    description:
+      "Optional coarse region; avoid entering an address or postcode.",
     textKey: "userCity",
     inputType: "text",
-    placeholder: "e.g. Melbourne",
+    placeholder: "e.g. Brisbane",
   },
   {
     key: "shareStore",
-    label: "Specific store",
-    description: "e.g. Coles Fitzroy — helps detect store-level pricing",
+    label: "Store name or ID",
+    description: "Optional store context; never enter account information.",
     textKey: "userStoreName",
     inputType: "text",
-    placeholder: "e.g. Coles Fitzroy",
-  },
-  {
-    key: "linkAccount",
-    label: "Link supermarket account",
-    description:
-      "Hashed email — enables cross-device personalisation detection",
+    placeholder: "e.g. Coles Toowong",
   },
 ];
 
@@ -61,45 +92,68 @@ export function ContributionSection({
   settings,
   onToggle,
   onTextChange,
+  error,
 }: ContributionSectionProps) {
+  const fairnessContextReady = Boolean(
+    (settings.shareStore && settings.userStoreName) ||
+    (settings.shareState && settings.userState) ||
+    (settings.shareCity && settings.userCity),
+  );
   return (
     <div>
-      <div className={styles.toggleCard}>
-        <div className={styles.toggleRow}>
-          <div>
-            <div className={styles.toggleLabel}>Contribute price data</div>
-            <div className={styles.toggleDescription}>
-              Share the prices you see with the Chook Check community
-            </div>
-          </div>
-          <ToggleSwitch
-            checked={settings.contributionEnabled}
-            onChange={(v) => onToggle("contributionEnabled", v)}
-          />
+      {settings.reconsentRequired && (
+        <div className={styles.infoBox} role="alert">
+          A previous contribution setting was found. Uploads remain paused until
+          you review and enable one of the new, separate modes below.
         </div>
+      )}
+      {error && (
+        <div className={styles.infoBox} role="alert">
+          {error}
+        </div>
+      )}
+      {settings.fairnessStudyEnabled && !fairnessContextReady && (
+        <div className={styles.infoBox} role="status">
+          Fairness-study uploads are paused until you select at least one coarse
+          state, city/region, or store context below.
+        </div>
+      )}
+
+      <div className={styles.contextGroup}>
+        {PRIVACY_MODES.map((mode) => (
+          <div className={styles.toggleCard} key={mode.key}>
+            <div className={styles.toggleRow}>
+              <div>
+                <div className={styles.toggleLabel}>{mode.label}</div>
+                <div className={styles.toggleDescription}>{mode.summary}</div>
+              </div>
+              <ToggleSwitch
+                checked={settings[mode.key]}
+                onChange={(value) => onToggle(mode.key, value)}
+              />
+            </div>
+            <div className={styles.infoText}>{MODE_DISCLOSURES[mode.key]}</div>
+          </div>
+        ))}
       </div>
 
       <div className={styles.infoBox}>
-        <div className={styles.infoTitle}>
-          What gets shared when you contribute
-        </div>
+        <div className={styles.infoTitle}>Pseudonymous, not anonymous</div>
         <div className={styles.infoText}>
-          Product name, brand, price, unit price, store chain, and when you saw
-          it.
-          <br />A random anonymous ID (not linked to you in any way).
+          Contributions use a random ID plus separate secret submit and deletion
+          tokens. Chook Check does not collect supermarket account identifiers,
+          but repeated submissions can still be linked to that random ID.
         </div>
       </div>
 
-      <div className={styles.contextTitle}>
-        Optional context (more detail = better community insights)
-      </div>
-
+      <div className={styles.contextTitle}>Optional fairness-study context</div>
       <div className={styles.contextGroup}>
         {CONTEXT_TOGGLES.map((toggle) => {
-          const toggleOn = settings[toggle.key] as boolean;
+          const toggleOn = settings[toggle.key];
           const showInput =
-            toggle.textKey && toggleOn && settings.contributionEnabled;
-
+            Boolean(toggle.textKey) &&
+            toggleOn &&
+            settings.fairnessStudyEnabled;
           return (
             <div key={toggle.key}>
               <div className={styles.contextItem}>
@@ -111,8 +165,8 @@ export function ContributionSection({
                 </div>
                 <ToggleSwitch
                   checked={toggleOn}
-                  onChange={(v) => onToggle(toggle.key, v)}
-                  disabled={!settings.contributionEnabled}
+                  onChange={(value) => onToggle(toggle.key, value)}
+                  disabled={!settings.fairnessStudyEnabled}
                 />
               </div>
               {showInput && (
@@ -120,15 +174,15 @@ export function ContributionSection({
                   {toggle.inputType === "select" ? (
                     <select
                       className={styles.contextInput}
-                      value={settings[toggle.textKey!] as string}
-                      onChange={(e) =>
-                        onTextChange(toggle.textKey!, e.target.value)
+                      value={settings[toggle.textKey!]}
+                      onChange={(event) =>
+                        onTextChange(toggle.textKey!, event.target.value)
                       }
                     >
                       <option value="">Select state…</option>
-                      {AU_STATES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
+                      {AU_STATES.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
                         </option>
                       ))}
                     </select>
@@ -136,9 +190,9 @@ export function ContributionSection({
                     <input
                       type="text"
                       className={styles.contextInput}
-                      value={settings[toggle.textKey!] as string}
-                      onChange={(e) =>
-                        onTextChange(toggle.textKey!, e.target.value)
+                      value={settings[toggle.textKey!]}
+                      onChange={(event) =>
+                        onTextChange(toggle.textKey!, event.target.value)
                       }
                       placeholder={toggle.placeholder}
                     />

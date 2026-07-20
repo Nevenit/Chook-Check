@@ -9,7 +9,9 @@ type Tab = "overview" | "products" | "export";
 
 export function DashboardLayout() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null,
+  );
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "overview", label: "Overview" },

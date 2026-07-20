@@ -91,8 +91,14 @@ describe("ObservationList", () => {
     vi.setSystemTime(new Date("2026-03-18T12:10:00.000Z"));
 
     const observations = [
-      makeObservation({ productName: "Product A", observedAt: "2026-03-18T12:00:00.000Z" }),
-      makeObservation({ productName: "Product B", observedAt: "2026-03-18T11:00:00.000Z" }),
+      makeObservation({
+        productName: "Product A",
+        observedAt: "2026-03-18T12:00:00.000Z",
+      }),
+      makeObservation({
+        productName: "Product B",
+        observedAt: "2026-03-18T11:00:00.000Z",
+      }),
     ];
     render(<ObservationList observations={observations} />);
     expect(screen.getByText("Product A")).toBeDefined();

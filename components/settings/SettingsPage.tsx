@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { getSettings, updateSetting, updateUserContext } from "@/lib/settings";
 import { getStorageStats } from "@/lib/data";
 import type { UserSettings, SharingEvent } from "@/lib/types";
+import type { PrivacyModeKey } from "@/lib/types";
+import { requestFirefoxDataConsent } from "@/lib/firefox-data-consent";
 import { ContributionSection } from "./ContributionSection";
 import { DataSummarySection } from "./DataSummarySection";
 import { SharingLogSection } from "./SharingLogSection";
@@ -35,6 +37,7 @@ export function SettingsPage() {
   });
   const [sharingEvents, setSharingEvents] = useState<SharingEvent[]>([]);
   const [activeSection, setActiveSection] = useState<string>("contribution");
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const loadData = useCallback(async () => {
@@ -73,9 +76,47 @@ export function SettingsPage() {
   }, [settings]);
 
   async function handleToggle(key: keyof UserSettings, value: boolean) {
+    setPrivacyError(null);
+    const privacyModes: PrivacyModeKey[] = [
+      "communityDownloadsEnabled",
+      "historyContributionEnabled",
+      "fairnessStudyEnabled",
+      "inlineOverlayEnabled",
+    ];
+    const isPrivacyMode = privacyModes.includes(key as PrivacyModeKey);
+    if (value && isPrivacyMode) {
+      const granted = await requestFirefoxDataConsent(key as PrivacyModeKey);
+      if (!granted) {
+        setPrivacyError(
+          "The required Firefox data permission was not granted. The mode remains off.",
+        );
+        return;
+      }
+    }
+
     await updateSetting(db, key, value);
-    const updated = await getSettings(db);
-    setSettings(updated);
+    try {
+      if (
+        value &&
+        (key === "historyContributionEnabled" || key === "fairnessStudyEnabled")
+      ) {
+        await browser.runtime.sendMessage({
+          type: "ENSURE_CONTRIBUTOR",
+          userInitiated: true,
+        });
+      }
+      if (value && key === "communityDownloadsEnabled") {
+        await browser.runtime.sendMessage({ type: "SYNC_COMMUNITY_SNAPSHOT" });
+      }
+    } catch (error) {
+      await updateSetting(db, key, false);
+      setPrivacyError(
+        error instanceof Error
+          ? error.message
+          : "The mode could not be enabled. No data was sent.",
+      );
+    }
+    setSettings(await getSettings(db));
   }
 
   async function handleTextChange(
@@ -116,7 +157,9 @@ export function SettingsPage() {
         <section
           id="contribution"
           className={styles.section}
-          ref={(el) => { sectionRefs.current["contribution"] = el; }}
+          ref={(el) => {
+            sectionRefs.current["contribution"] = el;
+          }}
         >
           <h2 className={styles.sectionHeading}>Contribution</h2>
           <p className={styles.sectionDescription}>
@@ -127,13 +170,16 @@ export function SettingsPage() {
             settings={settings}
             onToggle={handleToggle}
             onTextChange={handleTextChange}
+            error={privacyError}
           />
         </section>
 
         <section
           id="data-summary"
           className={styles.section}
-          ref={(el) => { sectionRefs.current["data-summary"] = el; }}
+          ref={(el) => {
+            sectionRefs.current["data-summary"] = el;
+          }}
         >
           <h2 className={styles.sectionHeading}>What's stored locally</h2>
           <p className={styles.sectionDescription}>
@@ -146,7 +192,9 @@ export function SettingsPage() {
         <section
           id="sharing-log"
           className={styles.section}
-          ref={(el) => { sectionRefs.current["sharing-log"] = el; }}
+          ref={(el) => {
+            sectionRefs.current["sharing-log"] = el;
+          }}
         >
           <h2 className={styles.sectionHeading}>Sharing log</h2>
           <p className={styles.sectionDescription}>
@@ -158,7 +206,9 @@ export function SettingsPage() {
         <section
           id="consent-history"
           className={styles.section}
-          ref={(el) => { sectionRefs.current["consent-history"] = el; }}
+          ref={(el) => {
+            sectionRefs.current["consent-history"] = el;
+          }}
         >
           <h2 className={styles.sectionHeading}>Consent history</h2>
           <p className={styles.sectionDescription}>
@@ -170,19 +220,23 @@ export function SettingsPage() {
         <section
           id="data-management"
           className={styles.section}
-          ref={(el) => { sectionRefs.current["data-management"] = el; }}
+          ref={(el) => {
+            sectionRefs.current["data-management"] = el;
+          }}
         >
           <h2 className={styles.sectionHeading}>Data management</h2>
           <p className={styles.sectionDescription}>
             Delete your data locally or request server-side deletion.
           </p>
-          <DataManagementSection onDataDeleted={loadData} contributorId={settings.contributorId} />
+          <DataManagementSection onDataDeleted={loadData} settings={settings} />
         </section>
 
         <section
           id="about"
           className={styles.section}
-          ref={(el) => { sectionRefs.current["about"] = el; }}
+          ref={(el) => {
+            sectionRefs.current["about"] = el;
+          }}
         >
           <h2 className={styles.sectionHeading}>About</h2>
           <AboutSection />
