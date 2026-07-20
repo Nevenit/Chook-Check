@@ -1,82 +1,111 @@
 # Chook Check
 
-> Browser extension for tracking Australian supermarket prices, detecting personalised pricing, and empowering consumers through community data.
->
-> *"Just doing a quick chook check before heading to Woolies."*
+Chook Check is a privacy-first browser extension for recording prices while you browse Woolworths and Coles, viewing local price history, and—only with separate opt-ins—contributing to a community dataset that can look for unexplained price differences between matched users.
 
-Chook Check passively records prices as you browse Woolworths and Coles, stores them locally in your browser, and — if you choose to opt in — contributes them to a community dataset that helps everyone spot pricing inconsistencies, sale patterns, and personalised pricing.
+> “Just doing a quick chook check before heading to Woolies.”
 
-## Status
+## Project status
 
-In active development. Not yet listed on the Chrome Web Store or Firefox Add-ons. See **Manual installation** below to try it.
+The project is in active pre-release development and is not yet listed on the Chrome Web Store or Firefox Add-ons. The local history workflow, versioned contribution API, privacy controls, public aggregation thresholds, and Chrome/Firefox MV3 builds are implemented. Retailer DOM changes and production deployment still require ongoing QA before a store release.
 
-## Privacy at a glance
+Chook Check can surface evidence worth investigating; it cannot, by itself, prove that a retailer intentionally personalised a price. See [Measurement methodology](docs/METHODOLOGY.md).
 
-- **Default:** all data stays on your device. Nothing is sent anywhere.
-- **Opt-in contribution:** if you turn it on, you choose exactly which optional context to share alongside the price data. Each toggle is independent.
-- **No accounts, no IPs:** the API never logs IPs against observations, and there's no signup.
-- **Open source on both ends:** this extension (MIT) and the [community API](https://github.com/Nevenit/chook-check-api) (AGPL-3.0).
+## Privacy model
 
-Full details in [PRIVACY.md](PRIVACY.md).
+Local collection is always available and makes **zero requests to the Chook Check service**. The Woolworths or Coles page continues to make its own normal retailer requests. Chook Check stores observations in the browser and enables every networked or page-visible feature separately.
+
+| Mode                         | Default | Behaviour                                                                                                                                                                |
+| ---------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Local price history          | On      | Reads approved product/search/category pages and stores observations locally for up to 365 days.                                                                         |
+| Community snapshot downloads | Off     | Downloads one bulk, privacy-thresholded community snapshot. It does not send the active page or product ID.                                                              |
+| Price-history contribution   | Off     | Uploads pseudonymous product, price, offer, extraction, surface, and time fields. It excludes page URLs and fairness context.                                            |
+| Fairness study               | Off     | Uploads the history fields plus selected coarse store/region context, fulfilment mode, sign-in state, loyalty eligibility, optional browser family, and instrument mode. |
+| Inline retailer-page UI      | Off     | Lets the user explicitly insert the price overlay from the toolbar. It does not itself enable network access.                                                            |
+
+Contribution uses a random install-level identifier and separate secret submit and deletion tokens. It is **pseudonymous, not anonymous**: repeated submissions can be linked to that random identifier. Chook Check does not collect a supermarket username, email, password, loyalty number, cart, or order history.
+
+Read the full [Privacy Policy](PRIVACY.md) and [Threat Model](docs/THREAT_MODEL.md).
+
+## Can retailers detect the extension?
+
+Ordinary website code does not have a general browser API that lists every installed extension. Extensions can nevertheless make themselves identifiable by changing the page, emitting DOM events or `postMessage` messages, exposing predictable web-accessible resources, or placing stable identifiers in page-visible markup.
+
+The always-on Chook Check collectors therefore:
+
+- run in the browser’s isolated extension world;
+- do not insert or alter page DOM;
+- do not emit document events or `window.postMessage` startup signals;
+- do not expose web-accessible resources; and
+- avoid account, cart, checkout, login, order, payment, and loyalty-account routes.
+
+The build audit fails CI if those collector guarantees regress. The optional inline overlay is inherently page-visible and can be detected by retailer scripts, so it is injected only after the user requests it and after the original price is captured. Chook Check cannot promise perfect invisibility against browser vulnerabilities, sophisticated timing/fingerprinting techniques, future browser changes, or a retailer that changes content for unrelated reasons.
+
+## What is measured
+
+Each local observation records a product identifier, name and available catalogue metadata, current/regular/unit price, offer information, source surface, extraction method, scraper version, time, and the page URL. The page URL remains local and is never part of an API submission.
+
+The collector conservatively records `guest`/`signed_in`, loyalty eligibility, fulfilment mode, and selected store only when the page exposes an explicit matching state. Missing or ambiguous values stay `unknown`; account identifiers are not copied. These context fields are uploaded only in fairness-study mode and subject to its sharing controls.
+
+Community output is gated at five contributors. A possible differential-pricing signal requires at least ten contributors, at least three contributors in each price group, strict matching on known context, and repetition in at least two time buckets. Signals are labelled as evidence for review, not proof.
+
+## Permissions
+
+- `storage`: local observations, settings, consent history, deletion credentials, and downloaded snapshots.
+- `alarms`: local retention, opted-in batch uploads, and opted-in snapshot refreshes.
+- `scripting`: injects the optional overlay only after a toolbar action.
+- Woolworths and Coles host access: reads approved product, search, browse, and category pages.
+- Chook Check API host access: used only by an enabled network mode or a user-requested server deletion.
+
+Firefox builds require Firefox 140 or newer and declare Firefox’s built-in optional data-collection permissions. A relevant Firefox permission is requested when a user enables a mode and the mode is disabled if that permission is later revoked.
 
 ## Manual installation
 
-### Chrome / Edge / Brave
+Requires Node.js 20 or newer.
 
-1. `npm install && npm run build`
-2. Open `chrome://extensions`, enable Developer mode
-3. Click **Load unpacked** and select `.output/chrome-mv3`
+### Chrome, Edge, or Brave
 
-### Firefox
+1. Run `npm install && npm run build`.
+2. Open `chrome://extensions` and enable Developer mode.
+3. Choose **Load unpacked** and select `.output/chrome-mv3`.
 
-1. `npm install && npm run build:firefox`
-2. Open `about:debugging#/runtime/this-firefox`
-3. Click **Load Temporary Add-on** and select `.output/firefox-mv2/manifest.json`
+### Firefox 140+
 
-## Development
+1. Run `npm install && npm run build:firefox`.
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Choose **Load Temporary Add-on** and select `.output/firefox-mv3/manifest.json`.
 
-Requires Node 20+ and npm.
+## Development and verification
 
 ```bash
 npm install
-npm run dev              # Chrome dev with HMR
-npm run dev:firefox      # Firefox dev
-npm test                 # Vitest in watch mode
-npm run test:run         # one-shot
+npm run dev
+npm run dev:firefox
+npm run typecheck
 npm run lint
-npm run format
-```
-
-Build commands:
-
-```bash
-npm run build            # Chrome production build
+npm run format:check
+npm run test:run
+npm run build
 npm run build:firefox
-npm run zip              # zipped artifact for store submission
-npm run zip:firefox
+npm run audit:build
 ```
+
+`npm run audit:build` checks both production manifests and silent collector bundles for accidental content-script wrappers, page events/messages, extension-resource URLs, and web-accessible resources. CI runs all commands above except the watch-mode development commands.
 
 ## Architecture
 
-- [WXT](https://wxt.dev) extension framework, Manifest V3 (Chrome) / V2 (Firefox)
-- React 19, Chart.js for the dashboard, hand-rolled SVG sparkline for the overlay
-- [Dexie.js](https://dexie.org) wrapping IndexedDB for local storage
-- All network I/O goes through the background service worker — content scripts and UI never `fetch` directly
+- WXT and Manifest V3 for Chrome and Firefox.
+- React 19 for the popup, dashboard, settings, and optional closed-shadow-root overlay.
+- Dexie/IndexedDB for local observations, settings, logs, and bulk community snapshots.
+- Two minimal manifest collectors for approved retailer routes; the overlay is a separate runtime-injected script.
+- A single background service worker is the policy boundary for all Chook Check API access.
+- Versioned observation schema with independent history, fairness, and observer-effect fields.
 
-Scrapers use a layered fallback: JSON-LD → JS hydration state (`__NEXT_DATA__` etc.) → DOM selectors.
-
-## Testing
-
-Vitest with `happy-dom` and `fake-indexeddb`. UI tests use `@testing-library/react`. Run `npm run test:run`.
-
-## Backend
-
-The community API lives at <https://github.com/Nevenit/chook-check-api>. AGPL-3.0 — anyone running a modified service must publish their source.
+The community service lives in [Nevenit/chook-check-api](https://github.com/Nevenit/chook-check-api) and is licensed AGPL-3.0. This extension is MIT licensed.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and PRs welcome.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Scraper changes should include sanitized fixture coverage, and privacy-affecting changes must update the disclosure text, privacy policy, threat model, and tests in the same pull request.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE)

@@ -1,108 +1,143 @@
 # Chook Check Privacy Policy
 
-**Last updated:** 2026-05-05
+**Last updated:** 20 July 2026
 
-Chook Check is designed to be private by default. This document describes exactly what the extension does with your data, what is sent to our servers (only when you opt in), and what is never sent at all.
+This policy describes the Chook Check browser extension and its community API. Chook Check is designed to provide useful local price history without requiring an account or sending data to Chook Check by default.
 
-## Default mode: local only
+## Summary
 
-When you first install Chook Check, **nothing is sent anywhere**. The extension:
+- Price observations are stored locally for up to 365 days by default.
+- All Chook Check network features and all retailer-page UI are off by default and controlled separately.
+- Contribution is pseudonymous, not anonymous. A random install-level contributor ID can link repeated submissions.
+- Page URLs, supermarket account identifiers, cart contents, orders, passwords, emails, and loyalty numbers are never uploaded.
+- Cloudflare necessarily receives network metadata, including an IP address, when the extension contacts the API. The application does not store a raw IP address against an observation.
 
-- Stores price observations from Woolworths and Coles product pages in your browser's local IndexedDB
-- Lets you view your own price history, recent observations, and per-product charts
-- Generates a random anonymous contributor ID (UUID v4) which is **not used** unless you later opt into contribution
+## Data stored locally
 
-No account, signup, or login is required. No tracking pixels, analytics, or telemetry are loaded.
+On approved Woolworths and Coles product, search, browse, and category routes, the extension may store:
 
-## Optional: contributing to the community dataset
+- product ID, name, brand, category, and GTIN when available;
+- current, regular/“was”, and unit prices;
+- normalized offer information and required quantity when available;
+- retailer, source surface, extraction source, scraper version, and observation time;
+- a random observation ID and whether the capture occurred silently or around a user-activated inline overlay;
+- explicit page-provided context such as sign-in state, loyalty eligibility, fulfilment mode, and selected store, or `unknown` when it cannot be established; and
+- the retailer page URL.
 
-The extension's value to other users grows with shared data. You can opt in via Settings. When you do, the extension submits your locally-recorded observations to the community API in batches every 5 minutes (and only while contribution is enabled).
+The retailer page URL is used for local history and route validation. It is not included in API schema v2 and is never uploaded. The extension does not copy account names, account IDs, email addresses, loyalty numbers, or credentials when detecting coarse page context.
 
-### Always shared per observation (when contributing is on)
+Local price observations are removed after 365 days. Settings, consent events, sharing logs, deletion credentials, and the most recently downloaded community snapshot remain until replaced, cleared, or the extension is reset. Browser uninstall behaviour is controlled by the browser and normally removes extension storage.
 
-| Field | Example |
-|---|---|
-| Product ID | `woolworths:123456` |
-| Product name | `Vegemite 380g` |
-| Brand | `Vegemite` |
-| Category | `Spreads` |
-| Store chain | `woolworths` or `coles` |
-| Price (cents) | `750` |
-| "Was" price (cents) | `900` (when on sale) |
-| Unit price (cents) | `1974` per 100g |
-| Promo type | `member_price`, `half_price`, etc. |
-| Whether it appeared in a personalised "for you" section | `true`/`false` |
-| Timestamp of observation | ISO 8601 |
-| Contributor ID | random UUID generated on install |
+## Optional modes
 
-### Optional context (each toggle independent)
+### Community snapshot downloads
 
-| Toggle | Default | What gets added to your submissions |
-|---|---|---|
-| Share my browser | **On** | `Chrome`, `Firefox`, etc. |
-| Share my state | Off | e.g. `VIC`, `NSW` |
-| Share my city/region | Off | e.g. `Melbourne` |
-| Share my specific store | Off | Free-text store name e.g. `Coles Fitzroy` |
-| Link my account | Off | **Currently inert.** The toggle exists but no account-hashing is implemented yet — see *Planned features* below. |
+When enabled, the extension periodically requests a bulk community snapshot. The request does not contain the current retailer URL or a product ID. The API and Cloudflare receive ordinary request metadata, including an IP address and user-agent information supplied by the browser.
 
-You can change these toggles at any time. Changes apply only to future observations.
+### Price-history contribution
 
-## What is never collected
+When enabled, the extension creates a pseudonymous contributor credential and uploads recent observations in batches. Submissions include product/catalogue fields, prices, offers, source surface, extraction source, scraper version, capture time, and a random observation ID. History mode forces fairness-specific context to `unknown` or `null` and does not upload page URLs, store/region context, sign-in state, loyalty eligibility, browser family, or overlay comparison IDs.
 
-- Real name, email address, password, or any other login credential
-- Loyalty card numbers (Everyday Rewards, Flybuys)
-- IP address — the API never persists this against observations. IPs are seen transiently by Cloudflare for rate limiting on read endpoints, then discarded.
-- Browsing history outside Woolworths/Coles product and search pages
-- Cart contents, order history, or anything from your supermarket account
-- Any data from non-Woolworths/non-Coles websites
+### Fairness study
 
-The extension manifest declares only two host permissions: `https://www.woolworths.com.au/*` and `https://www.coles.com.au/*`. The browser will prevent it from accessing any other site.
+When enabled, submissions contain the history fields plus the context needed to compare like-for-like observations. Depending on the user’s choices and what the retailer page explicitly exposes, this can include:
 
-## Permissions explained
+- a selected store name/ID or coarse state/city/region;
+- delivery, pickup, in-store, or unknown fulfilment mode;
+- guest, signed-in, or unknown state;
+- loyalty-member eligibility, non-member, or unknown state;
+- browser family, if its separate toggle is enabled; and
+- silent versus user-activated instrument mode and pre/post overlay comparison IDs.
 
-- `storage` — to store observations and settings in the browser's local IndexedDB
-- `alarms` — to schedule the periodic batch submission (every 5 minutes when contribution is on)
-- Host permissions on Woolworths and Coles only — required to read product pages
+Fairness submissions pause until at least one coarse store or region field is selected. Do not enter a street address, account number, or other personal information into the free-text store or region controls.
 
-## Where your contributed data lives
+### Inline retailer-page UI
 
-The community API runs on Cloudflare Workers backed by Cloudflare D1 (SQLite at the edge). Cloudflare's Australian PoPs handle traffic from AU users. The API is open source under AGPL-3.0 at <https://github.com/Nevenit/chook-check-api> — anyone running a modified instance is required to publish their source.
+When enabled, the user can explicitly inject the Chook Check overlay from the toolbar. The extension captures the retailer-provided price before inserting the overlay and may capture a changed price afterwards using a random comparison ID. Enabling the overlay does not itself enable community downloads or uploads.
 
-## Your controls
+Retailer scripts can observe DOM changes made by the overlay. The silent collector does not modify the page, emit document events or `window.postMessage` messages, or expose web-accessible resources, but Chook Check cannot guarantee that its presence is impossible to infer.
 
-In the extension's Settings page you can:
+## Pseudonymous credentials
 
-- **View** all data stored locally
-- **Export** your local data as JSON
-- **Stop contributing** with one click — submissions stop immediately
-- **Delete all local data** — clears IndexedDB
-- **Request server-side deletion** — sends a DELETE to the API keyed by your contributor ID; all observations from that ID are permanently removed
-- **Read your consent audit log** — every time you toggled contribution or a sub-setting, with timestamp
+The API issues:
 
-## Sharing log
+- a random contributor ID;
+- a secret submit token; and
+- a separate secret deletion token.
 
-Every batch submitted to the API is also recorded in your local sharing log, visible in Settings. You can see exactly what went out and when.
+The tokens are stored in extension storage. The server stores SHA-256 token hashes rather than the raw tokens. Raw observations contain the contributor ID so duplicate submissions can be rejected, contributions can be deleted during the raw-retention period, and contributor thresholds can be calculated. This makes contributions linkable to the pseudonymous ID even though Chook Check does not know the person’s name.
 
-## Anti-gaming measures
+Chook Check does not hash or link a supermarket login, email, or loyalty account and has no cross-device account-linking feature.
 
-- The community API only shows aggregated stats once 3+ distinct contributors have observed a product (crowd quorum)
-- The API uses median (not mean) for all aggregates — outlier-resistant by construction
-- Rate limits per contributor on submissions
+## Server and network processing
 
-## Planned features (not yet active)
+The community API runs on Cloudflare Workers with Cloudflare D1. Cloudflare acts as the infrastructure provider and processes network traffic under its own policies. Like any internet service, Cloudflare and the Worker receive the source IP address and request metadata needed to route and protect a request.
 
-- **Account linking** — hashing your supermarket login email with Argon2id and using the hash as your contributor ID across devices, to detect cross-session personalisation. The UI toggle for this exists but the hashing logic isn't implemented yet, so toggling it currently has no effect on what is sent.
-- **Trust scoring and outlier detection** on the API side.
+The application uses a secret-keyed HMAC of the IP address for public-read and contributor-registration rate limits. It does not write the raw IP address to D1 or attach it to observations. Registration rate-limit rows are retained for up to approximately 26 hours; other rate-limit rows, including contributor-keyed limits, are retained for up to approximately two hours. Infrastructure or security logs controlled by Cloudflare may have different retention.
 
-This document will be updated when these features ship.
+The API uses no third-party analytics, advertising SDKs, or tracking pixels. Public, thresholded aggregate data is made available to extension users and may be visible to anyone using the public API.
 
-## Open source
+## Server retention and aggregation
 
-Both the extension and the API are open source. You can read every line of code that handles your data:
+- Raw v2 observations, including the pseudonymous contributor ID, are retained for approximately 180 complete days.
+- Before eligible raw records expire, a daily aggregate is created only when at least five distinct contributors observed that product that day. It retains product metadata, date, median/minimum/maximum price, and counts—not contributor IDs or individual rows.
+- Privacy-thresholded daily aggregates are retained for up to three years.
+- Days below the five-contributor threshold are deleted without creating a public aggregate.
+- Quarantined outliers are not included in public aggregates.
 
-- Extension: <https://github.com/Nevenit/Chook-Check> (MIT)
-- API: <https://github.com/Nevenit/chook-check-api> (AGPL-3.0)
+Because a daily aggregate no longer contains contributor identifiers or individual rows, an individual contribution cannot be located or subtracted from that aggregate after raw records expire.
 
-## Contact
+## Your controls and deletion
 
-Questions or concerns: file an issue at <https://github.com/Nevenit/Chook-Check/issues> or email <Nevenit@outlook.com>.
+The Settings page lets users:
+
+- enable or disable each optional mode independently;
+- review the exact disclosure recorded with each mode choice;
+- choose fairness-study context;
+- view and export local observations;
+- clear local price history separately from local consent/sharing logs;
+- delete raw server contributions still linked to the install;
+- export the deletion recovery credential; and
+- reset the extension.
+
+Disabling a mode stops future activity for that mode. It does not automatically delete previously contributed raw observations. A deletion request authenticated with the deletion token removes raw observations still associated with that contributor and disables its credentials. It cannot reverse thresholded daily aggregates that no longer contain contributor-level data.
+
+If a server deletion fails, uploads are paused and the deletion credential is retained for retry. Users should delete server data or export the recovery credential before uninstalling or clearing extension storage. Without the deletion token, the server cannot safely accept a request to delete a pseudonymous contributor’s data.
+
+## Data not collected or uploaded
+
+Chook Check does not collect or upload:
+
+- real name, supermarket username, email address, password, or authentication credential;
+- loyalty card/account numbers;
+- cart contents, checkout data, payment data, order history, or account pages;
+- precise GPS location, street address, or contacts;
+- browsing activity outside the declared Woolworths and Coles hosts; or
+- the local retailer page URL.
+
+Sensitive retailer routes containing account, login, cart, checkout, order, payment, or loyalty-account paths are explicitly denied before scraping.
+
+## Browser permissions
+
+The extension requests `storage`, `alarms`, and `scripting`, host access for Woolworths and Coles, and host access for the Chook Check API. `scripting` is used for the user-activated overlay. API access is centrally denied unless the corresponding opt-in, a user-requested deletion, or a pending deletion retry permits it.
+
+Firefox 140 and later builds declare Firefox’s built-in data-collection consent categories as optional. The extension requests the categories relevant to a mode when the user enables it and disables the mode if consent is revoked.
+
+## Security and limitations
+
+Transport uses HTTPS in production. Strict request schemas reject unknown fields, including page URLs. Separate submit and deletion tokens reduce the impact of exposing one capability. Public data has contributor thresholds and one-observation-per-contributor/day balancing, but no public system can completely prevent fabricated clients, coordinated submissions, retailer markup changes, or all forms of re-identification from rare context combinations.
+
+See the project’s [Threat Model](docs/THREAT_MODEL.md) and [Measurement Methodology](docs/METHODOLOGY.md) for residual risks and interpretation limits.
+
+## Changes to this policy
+
+Privacy-affecting changes require a new consent version. Existing contribution modes are paused when re-consent is required. The current disclosure text and consent version are stored locally in the consent log.
+
+## Contact and open source
+
+- Extension source: <https://github.com/Nevenit/Chook-Check>
+- API source: <https://github.com/Nevenit/chook-check-api>
+- Issues: <https://github.com/Nevenit/Chook-Check/issues>
+- Email: <Nevenit@outlook.com>
+
+The extension is MIT licensed. The API is AGPL-3.0 licensed.
