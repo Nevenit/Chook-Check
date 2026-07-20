@@ -1,65 +1,79 @@
-import type { SubmitRequest, SubmitResponse, ProductStats } from "./types";
+import type {
+  ContributorCredentials,
+  ProductStats,
+  SubmitRequestV2,
+  SubmitResponse,
+} from "./types";
 
 const API_BASE = "https://chook-check-api.nevenit.workers.dev";
 
-export async function submitObservations(
-  body: SubmitRequest,
-): Promise<SubmitResponse> {
-  const res = await fetch(`${API_BASE}/api/observations`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { message?: string }).message ?? `API error: ${res.status}`,
-    );
-  }
-
-  return res.json();
+async function readApiError(response: Response): Promise<Error> {
+  const payload = await response.json().catch(() => ({}));
+  const message =
+    (payload as { message?: string }).message ??
+    `API error: ${response.status}`;
+  return new Error(message);
 }
 
-export async function getProductStats(
-  productId: string,
-  days = 30,
-  chain?: string,
-): Promise<ProductStats | null> {
-  const params = new URLSearchParams({ days: String(days) });
-  if (chain) params.set("chain", chain);
+export async function registerContributor(): Promise<ContributorCredentials> {
+  const response = await fetch(`${API_BASE}/api/v2/contributors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) throw await readApiError(response);
+  return response.json();
+}
 
-  const res = await fetch(
-    `${API_BASE}/api/products/${encodeURIComponent(productId)}/stats?${params}`,
-    { method: "GET" },
-  );
+export async function submitObservations(
+  body: SubmitRequestV2,
+  submitToken: string,
+): Promise<SubmitResponse> {
+  const response = await fetch(`${API_BASE}/api/v2/observations`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${submitToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await readApiError(response);
+  return response.json();
+}
 
-  if (res.status === 404) return null;
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { message?: string }).message ?? `API error: ${res.status}`,
-    );
+export async function downloadCommunitySnapshot(
+  etag?: string,
+): Promise<
+  | { notModified: true; etag: string | null; products: [] }
+  | { notModified: false; etag: string | null; products: ProductStats[] }
+> {
+  const response = await fetch(`${API_BASE}/api/v2/snapshots/products`, {
+    method: "GET",
+    headers: etag ? { "If-None-Match": etag } : undefined,
+  });
+  const responseEtag = response.headers.get("ETag");
+  if (response.status === 304) {
+    return {
+      notModified: true,
+      etag: responseEtag ?? etag ?? null,
+      products: [],
+    };
   }
-
-  return res.json();
+  if (!response.ok) throw await readApiError(response);
+  const payload = (await response.json()) as { products: ProductStats[] };
+  return {
+    notModified: false,
+    etag: responseEtag,
+    products: payload.products,
+  };
 }
 
 export async function deleteContributorData(
-  contributorId: string,
+  deletionToken: string,
 ): Promise<{ deleted: number }> {
-  const res = await fetch(
-    `${API_BASE}/api/contributor/${encodeURIComponent(contributorId)}`,
-    { method: "DELETE" },
-  );
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { message?: string }).message ?? `API error: ${res.status}`,
-    );
-  }
-
-  return res.json();
+  const response = await fetch(`${API_BASE}/api/v2/contributor`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${deletionToken}` },
+  });
+  if (!response.ok) throw await readApiError(response);
+  return response.json();
 }

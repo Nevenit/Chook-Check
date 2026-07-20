@@ -30,9 +30,7 @@ export function findPriceElement(): Element | null {
  * Polls every 200ms for any of the chain's price selectors until found or timeout.
  * Resolves null on timeout — caller can fall back to fixed positioning.
  */
-export function waitForPriceElement(
-  timeoutMs = 3000,
-): Promise<Element | null> {
+export function waitForPriceElement(timeoutMs = 3000): Promise<Element | null> {
   return new Promise((resolve) => {
     const found = findPriceElement();
     if (found) {

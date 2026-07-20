@@ -2,6 +2,7 @@ import {
   parseJsonLd,
   parsePriceCents,
   parseUnitMeasure,
+  parseStructuredPrice,
   buildObservation,
 } from "../scraper";
 import { extractWoolworthsSku } from "../product-id";
@@ -31,18 +32,15 @@ export function scrapeWoolworths(
 
   // Woolworths offers is an object (not an array)
   const offers = jsonLd.offers as Record<string, unknown> | undefined;
-  const price =
-    typeof offers?.price === "number" ? offers.price : null;
+  const price = parseStructuredPrice(offers?.price);
   const priceCents = price != null ? Math.round(price * 100) : null;
 
   // Unit price from JSON-LD priceSpecification
   const priceSpec = offers?.priceSpecification as
     | Record<string, unknown>
     | undefined;
-  const unitPrice =
-    typeof priceSpec?.price === "number" ? priceSpec.price : null;
-  const unitPriceCents =
-    unitPrice != null ? Math.round(unitPrice * 100) : null;
+  const unitPrice = parseStructuredPrice(priceSpec?.price);
+  const unitPriceCents = unitPrice != null ? Math.round(unitPrice * 100) : null;
 
   // DOM: unit measure from cup price string (e.g., "$1.75 / 1L")
   const unitMeasure = extractUnitMeasureFromDom(doc);
@@ -74,6 +72,9 @@ export function scrapeWoolworths(
     unitMeasure,
     promoType,
     isPersonalised,
+    sourceSurface: isPersonalised ? "personalised_placement" : "product_page",
+    extractionSource: "json_ld",
+    scraperVersion: "2.1.0",
     pageUrl: url,
     observedAt: new Date().toISOString(),
   });
@@ -127,9 +128,7 @@ function extractWoolworthsCategory(doc: Document): string | null {
  * Scrapes all product tiles from a Woolworths search/category page.
  * Tiles use Shadow DOM (open mode) with `wc-product-tile` elements.
  */
-export function scrapeWoolworthsSearchTiles(
-  doc: Document,
-): PriceObservation[] {
+export function scrapeWoolworthsSearchTiles(doc: Document): PriceObservation[] {
   const tiles = doc.querySelectorAll("wc-product-tile");
   const results: PriceObservation[] = [];
 
@@ -151,8 +150,7 @@ export function scrapeWoolworthsSearchTiles(
     const priceCents = parsePriceCents(priceText ?? "");
     if (priceCents == null) continue;
 
-    const wasText =
-      sr.querySelector(".was-price")?.textContent?.trim() ?? null;
+    const wasText = sr.querySelector(".was-price")?.textContent?.trim() ?? null;
     const wasPriceCents = wasText ? parsePriceCents(wasText) : null;
 
     const cupText =
@@ -182,6 +180,9 @@ export function scrapeWoolworthsSearchTiles(
       unitMeasure,
       promoType,
       isPersonalised: false,
+      sourceSurface: inferWoolworthsTileSurface(window.location.pathname),
+      extractionSource: "dom",
+      scraperVersion: "2.1.0",
       pageUrl: window.location.href,
       observedAt: new Date().toISOString(),
     };
@@ -191,4 +192,8 @@ export function scrapeWoolworthsSearchTiles(
   }
 
   return results;
+}
+
+function inferWoolworthsTileSurface(pathname: string) {
+  return pathname.includes("/search/") ? "search_result" : "category_tile";
 }

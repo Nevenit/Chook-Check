@@ -1,13 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ChookCheckDB } from "@/lib/db";
-import { getSettings, updateSetting, deleteAllLocalData } from "@/lib/settings";
+import {
+  CONSENT_VERSION,
+  clearLocalLogs,
+  clearPriceHistory,
+  deleteAllLocalData,
+  getSettings,
+  saveContributorCredentials,
+  updateSetting,
+} from "@/lib/settings";
 import { makeObservation } from "../helpers";
 
 describe("settings", () => {
   let db: ChookCheckDB;
 
   beforeEach(async () => {
-    db = new ChookCheckDB("test-settings-" + Math.random());
+    db = new ChookCheckDB(`test-settings-${Math.random()}`);
     await db.open();
   });
 
@@ -15,125 +23,127 @@ describe("settings", () => {
     await db.delete();
   });
 
-  describe("getSettings", () => {
-    it("returns defaults when no settings exist", async () => {
-      const settings = await getSettings(db);
-      expect(settings.contributionEnabled).toBe(false);
-      expect(settings.contributorId).toBe("");
-      expect(settings.shareBrowser).toBe(false);
-      expect(settings.consentLog).toEqual([]);
+  it("defaults every network and inline mode to off", async () => {
+    const settings = await getSettings(db);
+    expect(settings.communityDownloadsEnabled).toBe(false);
+    expect(settings.historyContributionEnabled).toBe(false);
+    expect(settings.fairnessStudyEnabled).toBe(false);
+    expect(settings.inlineOverlayEnabled).toBe(false);
+    expect(settings.contributorId).toBe("");
+  });
+
+  it("does not expose the Dexie key", async () => {
+    expect("key" in (await getSettings(db))).toBe(false);
+  });
+
+  it("records versioned disclosure text when a privacy mode is enabled", async () => {
+    await updateSetting(db, "historyContributionEnabled", true);
+    const settings = await getSettings(db);
+    expect(settings.historyContributionEnabled).toBe(true);
+    expect(settings.consentVersion).toBe(CONSENT_VERSION);
+    expect(settings.consentLog[0]).toMatchObject({
+      action: "opted_in",
+      mode: "historyContributionEnabled",
+      consentVersion: CONSENT_VERSION,
     });
+    expect(settings.consentLog[0].disclosureText).toContain("pseudonymous");
+  });
 
-    it("returns existing settings", async () => {
-      await db.userSettings.add({
-        key: "default",
-        contributionEnabled: true,
-        contributorId: "abc-123",
-        contributorIdMode: "anonymous",
-        shareBrowser: true,
-        shareState: false,
-        shareCity: false,
-        shareStore: false,
-        linkAccount: false,
-        consentLog: [],
-        onboardingDismissed: false,
-        userState: "",
-        userCity: "",
-        userStoreName: "",
-      });
+  it("records opt out independently for each mode", async () => {
+    await updateSetting(db, "fairnessStudyEnabled", true);
+    await updateSetting(db, "fairnessStudyEnabled", false);
+    const settings = await getSettings(db);
+    expect(settings.fairnessStudyEnabled).toBe(false);
+    expect(settings.consentLog.at(-1)?.action).toBe("opted_out");
+  });
 
-      const settings = await getSettings(db);
-      expect(settings.contributionEnabled).toBe(true);
-      expect(settings.contributorId).toBe("abc-123");
-      expect(settings.shareBrowser).toBe(true);
+  it("records context toggles without treating them as mode consent", async () => {
+    await updateSetting(db, "shareState", true);
+    const event = (await getSettings(db)).consentLog[0];
+    expect(event.action).toBe("toggle_changed");
+    expect(event.mode).toBeUndefined();
+  });
+
+  it("stores distinct submit and deletion credentials", async () => {
+    await getSettings(db);
+    await saveContributorCredentials(db, {
+      contributorId: "contributor",
+      submitToken: "submit-secret",
+      deletionToken: "delete-secret",
     });
-
-    it("does not include the Dexie key field", async () => {
-      const settings = await getSettings(db);
-      expect("key" in settings).toBe(false);
+    expect(await getSettings(db)).toMatchObject({
+      contributorId: "contributor",
+      submitToken: "submit-secret",
+      deletionToken: "delete-secret",
     });
   });
 
-  describe("updateSetting", () => {
-    it("updates the toggle value", async () => {
-      await updateSetting(db, "shareBrowser", true);
-      const settings = await getSettings(db);
-      expect(settings.shareBrowser).toBe(true);
+  it("clears only price history when requested", async () => {
+    await db.priceObservations.add(makeObservation());
+    await db.sharingLog.add({
+      timestamp: new Date().toISOString(),
+      observationCount: 1,
+      status: "success",
     });
-
-    it("logs opted_in when enabling contribution", async () => {
-      await updateSetting(db, "contributionEnabled", true);
-      const settings = await getSettings(db);
-      expect(settings.consentLog).toHaveLength(1);
-      expect(settings.consentLog[0].action).toBe("opted_in");
-      expect(settings.consentLog[0].detail).toBe("Contribution enabled");
-    });
-
-    it("logs opted_out when disabling contribution", async () => {
-      await updateSetting(db, "contributionEnabled", true);
-      await updateSetting(db, "contributionEnabled", false);
-      const settings = await getSettings(db);
-      expect(settings.consentLog).toHaveLength(2);
-      expect(settings.consentLog[1].action).toBe("opted_out");
-      expect(settings.consentLog[1].detail).toBe("Contribution disabled");
-    });
-
-    it("logs toggle_changed for context toggles", async () => {
-      await updateSetting(db, "shareBrowser", true);
-      const settings = await getSettings(db);
-      expect(settings.consentLog[0].action).toBe("toggle_changed");
-      expect(settings.consentLog[0].detail).toBe("Share Browser turned on");
-    });
-
-    it("generates contributorId on first opt-in", async () => {
-      await updateSetting(db, "contributionEnabled", true);
-      const settings = await getSettings(db);
-      expect(settings.contributorId).toBeTruthy();
-      expect(settings.contributorId.length).toBeGreaterThan(0);
-    });
-
-    it("sets contributorIdMode to account_linked when linkAccount enabled", async () => {
-      await updateSetting(db, "linkAccount", true);
-      const settings = await getSettings(db);
-      expect(settings.contributorIdMode).toBe("account_linked");
-    });
-
-    it("sets contributorIdMode to anonymous when linkAccount disabled", async () => {
-      await updateSetting(db, "linkAccount", true);
-      await updateSetting(db, "linkAccount", false);
-      const settings = await getSettings(db);
-      expect(settings.contributorIdMode).toBe("anonymous");
-    });
+    await clearPriceHistory(db);
+    expect(await db.priceObservations.count()).toBe(0);
+    expect(await db.sharingLog.count()).toBe(1);
   });
 
-  describe("deleteAllLocalData", () => {
-    it("clears observations", async () => {
-      await db.priceObservations.add(makeObservation());
-      expect(await db.priceObservations.count()).toBe(1);
+  it("clears sharing and consent logs independently", async () => {
+    await updateSetting(db, "shareState", true);
+    await db.sharingLog.add({
+      timestamp: new Date().toISOString(),
+      observationCount: 1,
+      status: "success",
+    });
+    await clearLocalLogs(db);
+    expect(await db.sharingLog.count()).toBe(0);
+    expect((await getSettings(db)).consentLog).toEqual([]);
+  });
 
-      await deleteAllLocalData(db);
-      expect(await db.priceObservations.count()).toBe(0);
+  it("full reset clears every local data table and turns modes off", async () => {
+    await updateSetting(db, "historyContributionEnabled", true);
+    await db.priceObservations.add(makeObservation());
+    await db.sharingLog.add({
+      timestamp: new Date().toISOString(),
+      observationCount: 1,
+      status: "success",
+    });
+    await db.communitySnapshots.put({
+      productId: "woolworths:123",
+      productName: "Test",
+      brand: null,
+      storeChain: "woolworths",
+      quorum: true,
+      currentMedianCents: 300,
+      minCents: 300,
+      maxCents: 300,
+      observationCount: 5,
+      contributorCount: 5,
+      priceHistory: [],
+      promoFrequency: {},
+      downloadedAt: new Date().toISOString(),
     });
 
-    it("resets settings to defaults", async () => {
-      await updateSetting(db, "contributionEnabled", true);
-      await updateSetting(db, "shareBrowser", true);
+    await deleteAllLocalData(db);
+    expect(await db.priceObservations.count()).toBe(0);
+    expect(await db.sharingLog.count()).toBe(0);
+    expect(await db.communitySnapshots.count()).toBe(0);
+    expect((await getSettings(db)).historyContributionEnabled).toBe(false);
+  });
 
-      await deleteAllLocalData(db);
-      const settings = await getSettings(db);
-      expect(settings.contributionEnabled).toBe(false);
-      expect(settings.shareBrowser).toBe(false);
-    });
-
-    it("preserves consent log and appends deletion event", async () => {
-      await updateSetting(db, "contributionEnabled", true);
-      await deleteAllLocalData(db);
-
-      const settings = await getSettings(db);
-      expect(settings.consentLog.length).toBeGreaterThanOrEqual(2);
-      const lastEvent = settings.consentLog[settings.consentLog.length - 1];
-      expect(lastEvent.action).toBe("data_deleted");
-      expect(lastEvent.detail).toBe("All local data deleted");
-    });
+  it("full reset preserves a pending deletion recovery credential", async () => {
+    await getSettings(db);
+    const pending = {
+      contributorId: "id",
+      deletionToken: "secret",
+      requestedAt: "2026-07-20T00:00:00.000Z",
+      lastAttemptAt: "2026-07-20T00:00:00.000Z",
+      lastError: "offline",
+    };
+    await db.userSettings.update("default", { pendingServerDeletion: pending });
+    await deleteAllLocalData(db);
+    expect((await getSettings(db)).pendingServerDeletion).toEqual(pending);
   });
 });

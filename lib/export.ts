@@ -2,10 +2,22 @@ import type { ChookCheckDB } from "./db";
 import type { PriceObservation } from "./types";
 
 const CSV_HEADERS = [
-  "id", "productId", "productName", "brand", "category", "gtin",
-  "storeChain", "priceCents", "wasPriceCents", "unitPriceCents",
-  "unitMeasure", "promoType", "isPersonalised", "pageUrl",
-  "observedAt", "contributed",
+  "id",
+  "productId",
+  "productName",
+  "brand",
+  "category",
+  "gtin",
+  "storeChain",
+  "priceCents",
+  "wasPriceCents",
+  "unitPriceCents",
+  "unitMeasure",
+  "promoType",
+  "isPersonalised",
+  "pageUrl",
+  "observedAt",
+  "contributed",
 ] as const;
 
 function escapeCsvField(val: unknown): string {

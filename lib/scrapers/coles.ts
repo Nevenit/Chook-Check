@@ -2,6 +2,7 @@ import {
   parseJsonLd,
   parsePriceCents,
   parseUnitMeasure,
+  parseStructuredPrice,
   buildObservation,
 } from "../scraper";
 import { extractColesSku } from "../product-id";
@@ -30,17 +31,15 @@ export function scrapeColes(
   // Offers is an array in Coles
   const offers = Array.isArray(jsonLd.offers)
     ? (jsonLd.offers[0] as Record<string, unknown> | undefined)
-    : null;
-  const price =
-    typeof offers?.price === "number" ? offers.price : null;
+    : (jsonLd.offers as Record<string, unknown> | undefined);
+  const price = parseStructuredPrice(offers?.price);
   const priceCents = price != null ? Math.round(price * 100) : null;
 
   // Was price from priceSpecification — only when different from current
   const priceSpec = offers?.priceSpecification as
     | Record<string, unknown>
     | undefined;
-  const listPrice =
-    typeof priceSpec?.price === "number" ? priceSpec.price : null;
+  const listPrice = parseStructuredPrice(priceSpec?.price);
   const wasPriceCents =
     listPrice != null && price != null && listPrice !== price
       ? Math.round(listPrice * 100)
@@ -78,6 +77,9 @@ export function scrapeColes(
     unitMeasure,
     promoType,
     isPersonalised: false,
+    sourceSurface: "product_page",
+    extractionSource: "json_ld",
+    scraperVersion: "2.1.0",
     pageUrl: url,
     observedAt: new Date().toISOString(),
   });
@@ -110,9 +112,7 @@ function extractColesCategory(doc: Document): string | null {
  * Scrapes all product tiles from a Coles search/category page.
  * Tiles use `[data-testid="product-tile"]` in regular DOM.
  */
-export function scrapeColesSearchTiles(
-  doc: Document,
-): PriceObservation[] {
+export function scrapeColesSearchTiles(doc: Document): PriceObservation[] {
   const tiles = doc.querySelectorAll('[data-testid="product-tile"]');
   const results: PriceObservation[] = [];
 
@@ -167,6 +167,9 @@ export function scrapeColesSearchTiles(
       unitMeasure,
       promoType,
       isPersonalised: false,
+      sourceSurface: inferColesTileSurface(window.location.pathname),
+      extractionSource: "dom",
+      scraperVersion: "2.1.0",
       pageUrl: window.location.href,
       observedAt: new Date().toISOString(),
     };
@@ -176,4 +179,8 @@ export function scrapeColesSearchTiles(
   }
 
   return results;
+}
+
+function inferColesTileSurface(pathname: string) {
+  return pathname.includes("/search") ? "search_result" : "category_tile";
 }

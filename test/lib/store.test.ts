@@ -105,36 +105,38 @@ describe("initDefaults", () => {
 
     const settings = await db.userSettings.get("default");
     expect(settings).toBeDefined();
-    expect(settings!.contributionEnabled).toBe(false);
+    expect(settings!.historyContributionEnabled).toBe(false);
     expect(settings!.contributorId).toBe("");
-    expect(settings!.contributorIdMode).toBe("anonymous");
+    expect(settings!.submitToken).toBe("");
     expect(settings!.shareBrowser).toBe(false);
     expect(settings!.shareState).toBe(false);
     expect(settings!.shareCity).toBe(false);
     expect(settings!.shareStore).toBe(false);
-    expect(settings!.linkAccount).toBe(false);
+    expect(settings!.inlineOverlayEnabled).toBe(false);
     expect(settings!.consentLog).toEqual([]);
   });
 
   it("does not overwrite existing settings on second call", async () => {
     await initDefaults(db);
-    await db.userSettings.update("default", { contributionEnabled: true });
+    await db.userSettings.update("default", {
+      historyContributionEnabled: true,
+    });
 
     await initDefaults(db);
 
     const settings = await db.userSettings.get("default");
-    expect(settings!.contributionEnabled).toBe(true);
+    expect(settings!.historyContributionEnabled).toBe(true);
   });
 });
 
 describe("saveSettings", () => {
   it("updates a single field in existing settings", async () => {
     await initDefaults(db);
-    await saveSettings(db, { contributionEnabled: true });
+    await saveSettings(db, { communityDownloadsEnabled: true });
 
     const settings = await db.userSettings.get("default");
-    expect(settings!.contributionEnabled).toBe(true);
-    expect(settings!.contributorIdMode).toBe("anonymous");
+    expect(settings!.communityDownloadsEnabled).toBe(true);
+    expect(settings!.submitToken).toBe("");
   });
 
   it("creates defaults first if no settings exist, then applies changes", async () => {
@@ -142,6 +144,6 @@ describe("saveSettings", () => {
 
     const settings = await db.userSettings.get("default");
     expect(settings!.shareCity).toBe(true);
-    expect(settings!.contributionEnabled).toBe(false);
+    expect(settings!.historyContributionEnabled).toBe(false);
   });
 });

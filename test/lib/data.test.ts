@@ -22,9 +22,18 @@ afterEach(async () => {
 describe("getProductHistory", () => {
   it("returns observations for a specific product sorted by date", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ productId: "prod-1", observedAt: "2026-03-18T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-1", observedAt: "2026-03-16T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-2", observedAt: "2026-03-17T12:00:00.000Z" }),
+      makeObservation({
+        productId: "prod-1",
+        observedAt: "2026-03-18T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-1",
+        observedAt: "2026-03-16T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-2",
+        observedAt: "2026-03-17T12:00:00.000Z",
+      }),
     ]);
     const history = await getProductHistory(db, "prod-1");
     expect(history).toHaveLength(2);
@@ -41,9 +50,18 @@ describe("getProductHistory", () => {
 describe("getRecentObservations", () => {
   it("returns observations ordered by most recent first", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ productId: "a", observedAt: "2026-03-16T12:00:00.000Z" }),
-      makeObservation({ productId: "b", observedAt: "2026-03-18T12:00:00.000Z" }),
-      makeObservation({ productId: "c", observedAt: "2026-03-17T12:00:00.000Z" }),
+      makeObservation({
+        productId: "a",
+        observedAt: "2026-03-16T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "b",
+        observedAt: "2026-03-18T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "c",
+        observedAt: "2026-03-17T12:00:00.000Z",
+      }),
     ]);
     const recent = await getRecentObservations(db, 2);
     expect(recent).toHaveLength(2);
@@ -60,9 +78,21 @@ describe("getRecentObservations", () => {
 describe("getProductStats", () => {
   it("computes min, max, avg, count for a product", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ productId: "prod-1", priceCents: 200, observedAt: "2026-03-16T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-1", priceCents: 400, observedAt: "2026-03-17T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-1", priceCents: 300, observedAt: "2026-03-18T12:00:00.000Z" }),
+      makeObservation({
+        productId: "prod-1",
+        priceCents: 200,
+        observedAt: "2026-03-16T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-1",
+        priceCents: 400,
+        observedAt: "2026-03-17T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-1",
+        priceCents: 300,
+        observedAt: "2026-03-18T12:00:00.000Z",
+      }),
     ]);
     const stats = await getProductStats(db, "prod-1");
     expect(stats).toEqual({ min: 200, max: 400, avg: 300, count: 3 });
@@ -70,9 +100,21 @@ describe("getProductStats", () => {
 
   it("rounds average to nearest integer", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ productId: "prod-2", priceCents: 100, observedAt: "2026-03-16T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-2", priceCents: 200, observedAt: "2026-03-17T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-2", priceCents: 200, observedAt: "2026-03-18T12:00:00.000Z" }),
+      makeObservation({
+        productId: "prod-2",
+        priceCents: 100,
+        observedAt: "2026-03-16T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-2",
+        priceCents: 200,
+        observedAt: "2026-03-17T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-2",
+        priceCents: 200,
+        observedAt: "2026-03-18T12:00:00.000Z",
+      }),
     ]);
     const stats = await getProductStats(db, "prod-2");
     expect(stats).toEqual({ min: 100, max: 200, avg: 167, count: 3 });
@@ -88,8 +130,14 @@ describe("searchProducts", () => {
   it("finds observations by product name substring (case-insensitive)", async () => {
     await db.priceObservations.bulkAdd([
       makeObservation({ productName: "Woolworths Full Cream Milk 2L" }),
-      makeObservation({ productId: "prod-2", productName: "Coles Skim Milk 1L" }),
-      makeObservation({ productId: "prod-3", productName: "Cadbury Chocolate Block" }),
+      makeObservation({
+        productId: "prod-2",
+        productName: "Coles Skim Milk 1L",
+      }),
+      makeObservation({
+        productId: "prod-3",
+        productName: "Cadbury Chocolate Block",
+      }),
     ]);
     const results = await searchProducts(db, "milk");
     expect(results).toHaveLength(2);
@@ -110,9 +158,20 @@ describe("searchProducts", () => {
 describe("getStorageStats", () => {
   it("returns stats with observations present", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ storeChain: "woolworths", observedAt: "2026-03-16T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-2", storeChain: "woolworths", observedAt: "2026-03-18T12:00:00.000Z" }),
-      makeObservation({ productId: "prod-3", storeChain: "coles", observedAt: "2026-03-17T12:00:00.000Z" }),
+      makeObservation({
+        storeChain: "woolworths",
+        observedAt: "2026-03-16T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-2",
+        storeChain: "woolworths",
+        observedAt: "2026-03-18T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "prod-3",
+        storeChain: "coles",
+        observedAt: "2026-03-17T12:00:00.000Z",
+      }),
     ]);
     const stats = await getStorageStats(db);
     expect(stats.totalObservations).toBe(3);
@@ -123,14 +182,30 @@ describe("getStorageStats", () => {
 
   it("returns zeroed stats for empty database", async () => {
     const stats = await getStorageStats(db);
-    expect(stats).toEqual({ totalObservations: 0, distinctProducts: 0, oldestDate: null, newestDate: null, byChain: {} });
+    expect(stats).toEqual({
+      totalObservations: 0,
+      distinctProducts: 0,
+      oldestDate: null,
+      newestDate: null,
+      byChain: {},
+    });
   });
 
   it("returns distinct product count", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ productId: "product-a", observedAt: "2026-03-18T01:00:00.000Z" }),
-      makeObservation({ productId: "product-a", observedAt: "2026-03-18T02:00:00.000Z", priceCents: 400 }),
-      makeObservation({ productId: "product-b", observedAt: "2026-03-18T03:00:00.000Z" }),
+      makeObservation({
+        productId: "product-a",
+        observedAt: "2026-03-18T01:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "product-a",
+        observedAt: "2026-03-18T02:00:00.000Z",
+        priceCents: 400,
+      }),
+      makeObservation({
+        productId: "product-b",
+        observedAt: "2026-03-18T03:00:00.000Z",
+      }),
     ]);
 
     const stats = await getStorageStats(db);
@@ -147,8 +222,16 @@ describe("getStorageStats", () => {
 describe("getProductHistory + getProductStats (GET_PRODUCT_DATA handler path)", () => {
   it("returns history and stats for known product", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ productId: "woolworths:123", priceCents: 300, observedAt: "2026-03-17T00:00:00.000Z" }),
-      makeObservation({ productId: "woolworths:123", priceCents: 400, observedAt: "2026-03-18T00:00:00.000Z" }),
+      makeObservation({
+        productId: "woolworths:123",
+        priceCents: 300,
+        observedAt: "2026-03-17T00:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "woolworths:123",
+        priceCents: 400,
+        observedAt: "2026-03-18T00:00:00.000Z",
+      }),
     ]);
 
     const history = await getProductHistory(db, "woolworths:123");

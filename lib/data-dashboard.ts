@@ -27,7 +27,11 @@ export async function getAllProductSummaries(
   const all = await db.priceObservations.orderBy("observedAt").toArray();
   const byProduct = new Map<
     string,
-    { name: string; chain: "woolworths" | "coles"; prices: { cents: number; at: string }[] }
+    {
+      name: string;
+      chain: "woolworths" | "coles";
+      prices: { cents: number; at: string }[];
+    }
   >();
 
   for (const obs of all) {
@@ -43,7 +47,8 @@ export async function getAllProductSummaries(
   for (const [productId, entry] of byProduct) {
     entry.prices.sort((a, b) => a.at.localeCompare(b.at));
     const latest = entry.prices[entry.prices.length - 1];
-    const previous = entry.prices.length > 1 ? entry.prices[entry.prices.length - 2] : null;
+    const previous =
+      entry.prices.length > 1 ? entry.prices[entry.prices.length - 2] : null;
 
     summaries.push({
       productId,

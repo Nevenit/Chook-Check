@@ -23,7 +23,10 @@ describe("deleteOlderThan", () => {
 
     await db.priceObservations.bulkAdd([
       makeObservation({ productId: "old", observedAt: oldDate.toISOString() }),
-      makeObservation({ productId: "recent", observedAt: recentDate.toISOString() }),
+      makeObservation({
+        productId: "recent",
+        observedAt: recentDate.toISOString(),
+      }),
     ]);
 
     const deleted = await deleteOlderThan(db, 365);
@@ -46,9 +49,18 @@ describe("deleteOlderThan", () => {
 describe("deleteProduct", () => {
   it("deletes all observations for a specific product", async () => {
     await db.priceObservations.bulkAdd([
-      makeObservation({ productId: "target", observedAt: "2026-03-16T12:00:00.000Z" }),
-      makeObservation({ productId: "target", observedAt: "2026-03-17T12:00:00.000Z" }),
-      makeObservation({ productId: "keep", observedAt: "2026-03-18T12:00:00.000Z" }),
+      makeObservation({
+        productId: "target",
+        observedAt: "2026-03-16T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "target",
+        observedAt: "2026-03-17T12:00:00.000Z",
+      }),
+      makeObservation({
+        productId: "keep",
+        observedAt: "2026-03-18T12:00:00.000Z",
+      }),
     ]);
     const deleted = await deleteProduct(db, "target");
     expect(deleted).toBe(2);

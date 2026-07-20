@@ -16,10 +16,7 @@ export async function deleteProduct(
   db: ChookCheckDB,
   productId: string,
 ): Promise<number> {
-  return db.priceObservations
-    .where("productId")
-    .equals(productId)
-    .delete();
+  return db.priceObservations.where("productId").equals(productId).delete();
 }
 
 export async function deleteAll(db: ChookCheckDB): Promise<void> {

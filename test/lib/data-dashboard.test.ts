@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ChookCheckDB } from "@/lib/db";
-import { getAllProductSummaries, getBiggestPriceChanges } from "@/lib/data-dashboard";
+import {
+  getAllProductSummaries,
+  getBiggestPriceChanges,
+} from "@/lib/data-dashboard";
 import { makeObservation } from "../helpers";
 
 describe("data-dashboard", () => {

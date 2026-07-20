@@ -9,14 +9,38 @@ export function parseJsonLd(doc: Document): Record<string, unknown> | null {
   for (const script of scripts) {
     try {
       const data = JSON.parse(script.textContent || "");
-      if (data["@type"] === "Product") {
-        return data;
-      }
+      const product = findProductJsonLd(data);
+      if (product) return product;
     } catch {
       // malformed JSON, skip
     }
   }
   return null;
+}
+
+function findProductJsonLd(value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const product = findProductJsonLd(item);
+      if (product) return product;
+    }
+    return null;
+  }
+  if (!value || typeof value !== "object") return null;
+  const object = value as Record<string, unknown>;
+  const types = Array.isArray(object["@type"])
+    ? object["@type"]
+    : [object["@type"]];
+  if (types.includes("Product")) return object;
+  return findProductJsonLd(object["@graph"]);
+}
+
+export function parseStructuredPrice(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const normalized = value.replace(/[$,\s]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 /**
@@ -73,7 +97,46 @@ export function parseUnitMeasure(text: string): string | null {
   return match[1].trim() || null;
 }
 
-export type ObservationFields = Omit<PriceObservation, "id" | "contributed">;
+export type ObservationFields = Omit<
+  PriceObservation,
+  | "id"
+  | "schemaVersion"
+  | "clientObservationId"
+  | "offerTextNormalized"
+  | "offerId"
+  | "requiredQuantity"
+  | "instrumentMode"
+  | "capturePhase"
+  | "comparisonId"
+  | "storeId"
+  | "coarseRegion"
+  | "fulfilmentMode"
+  | "authState"
+  | "loyaltyState"
+  | "sourceSurface"
+  | "extractionSource"
+  | "scraperVersion"
+  | "contributed"
+> &
+  Partial<
+    Pick<
+      PriceObservation,
+      | "offerTextNormalized"
+      | "offerId"
+      | "requiredQuantity"
+      | "instrumentMode"
+      | "capturePhase"
+      | "comparisonId"
+      | "storeId"
+      | "coarseRegion"
+      | "fulfilmentMode"
+      | "authState"
+      | "loyaltyState"
+      | "sourceSurface"
+      | "extractionSource"
+      | "scraperVersion"
+    >
+  >;
 
 /**
  * Validates required fields and builds a PriceObservation.
@@ -90,6 +153,22 @@ export function buildObservation(
   }
   return {
     ...fields,
+    schemaVersion: 2,
+    clientObservationId: crypto.randomUUID(),
+    offerTextNormalized: fields.offerTextNormalized ?? null,
+    offerId: fields.offerId ?? null,
+    requiredQuantity: fields.requiredQuantity ?? null,
+    instrumentMode: fields.instrumentMode ?? "silent",
+    capturePhase: fields.capturePhase ?? "baseline",
+    comparisonId: fields.comparisonId ?? null,
+    storeId: fields.storeId ?? null,
+    coarseRegion: fields.coarseRegion ?? null,
+    fulfilmentMode: fields.fulfilmentMode ?? "unknown",
+    authState: fields.authState ?? "unknown",
+    loyaltyState: fields.loyaltyState ?? "unknown",
+    sourceSurface: fields.sourceSurface ?? "unknown",
+    extractionSource: fields.extractionSource ?? "unknown",
+    scraperVersion: fields.scraperVersion ?? "unknown",
     contributed: false,
   };
 }

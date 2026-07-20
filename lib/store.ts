@@ -89,19 +89,27 @@ export async function initDefaults(db: ChookCheckDB): Promise<void> {
 
   await db.userSettings.add({
     key: "default",
-    contributionEnabled: false,
+    communityDownloadsEnabled: false,
+    historyContributionEnabled: false,
+    fairnessStudyEnabled: false,
+    inlineOverlayEnabled: false,
+    consentVersion: "",
+    reconsentRequired: false,
     contributorId: "",
-    contributorIdMode: "anonymous",
+    submitToken: "",
+    deletionToken: "",
+    legacyContributorId: "",
+    pendingServerDeletion: null,
     shareBrowser: false,
     shareState: false,
     shareCity: false,
     shareStore: false,
-    linkAccount: false,
     onboardingDismissed: false,
     userState: "",
     userCity: "",
     userStoreName: "",
     consentLog: [],
+    communitySnapshotSyncedAt: "",
   });
 }
 

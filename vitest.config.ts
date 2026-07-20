@@ -10,6 +10,18 @@ export default defineConfig({
   },
   test: {
     environment: "happy-dom",
+    environmentOptions: {
+      happyDOM: {
+        settings: {
+          disableCSSFileLoading: true,
+          disableJavaScriptFileLoading: true,
+          handleDisabledFileLoadingAsSuccess: true,
+          navigation: {
+            disableChildFrameNavigation: true,
+          },
+        },
+      },
+    },
     globals: true,
     setupFiles: ["./test/setup.ts"],
     css: {

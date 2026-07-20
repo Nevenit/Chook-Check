@@ -17,9 +17,7 @@ describe("onUrlChange", () => {
 
     // Debounce is 500ms
     await new Promise((r) => setTimeout(r, 600));
-    expect(callback).toHaveBeenCalledWith(
-      expect.stringContaining("/new-page"),
-    );
+    expect(callback).toHaveBeenCalledWith(expect.stringContaining("/new-page"));
   });
 
   it("calls callback when replaceState is called", async () => {
@@ -29,9 +27,7 @@ describe("onUrlChange", () => {
     history.replaceState({}, "", "/replaced");
 
     await new Promise((r) => setTimeout(r, 600));
-    expect(callback).toHaveBeenCalledWith(
-      expect.stringContaining("/replaced"),
-    );
+    expect(callback).toHaveBeenCalledWith(expect.stringContaining("/replaced"));
   });
 
   it("debounces rapid URL changes", async () => {
@@ -45,9 +41,7 @@ describe("onUrlChange", () => {
     await new Promise((r) => setTimeout(r, 600));
     // Should only fire once for the final URL
     expect(callback).toHaveBeenCalledTimes(1);
-    expect(callback).toHaveBeenCalledWith(
-      expect.stringContaining("/third"),
-    );
+    expect(callback).toHaveBeenCalledWith(expect.stringContaining("/third"));
   });
 
   it("supports multiple listeners without overwriting", async () => {
@@ -59,15 +53,30 @@ describe("onUrlChange", () => {
 
     history.pushState({}, "", "/multi-test");
 
-    await vi.waitFor(() => {
-      expect(calls1).toHaveLength(1);
-      expect(calls2).toHaveLength(1);
-    }, { timeout: 2000 });
+    await vi.waitFor(
+      () => {
+        expect(calls1).toHaveLength(1);
+        expect(calls2).toHaveLength(1);
+      },
+      { timeout: 2000 },
+    );
 
     expect(calls1[0]).toContain("/multi-test");
     expect(calls2[0]).toContain("/multi-test");
 
     cleanup1();
     cleanup2();
+  });
+
+  it("does not patch retailer history methods or dispatch named events", () => {
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    cleanup = onUrlChange(() => {});
+
+    expect(history.pushState).toBe(originalPushState);
+    expect(history.replaceState).toBe(originalReplaceState);
+    expect(dispatchSpy).not.toHaveBeenCalled();
+    dispatchSpy.mockRestore();
   });
 });

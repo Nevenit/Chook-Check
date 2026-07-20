@@ -61,14 +61,31 @@ export async function getStorageStats(db: ChookCheckDB): Promise<{
 }> {
   const total = await db.priceObservations.count();
   if (total === 0) {
-    return { totalObservations: 0, distinctProducts: 0, oldestDate: null, newestDate: null, byChain: {} };
+    return {
+      totalObservations: 0,
+      distinctProducts: 0,
+      oldestDate: null,
+      newestDate: null,
+      byChain: {},
+    };
   }
-  const productKeys = await db.priceObservations.orderBy("productId").uniqueKeys();
+  const productKeys = await db.priceObservations
+    .orderBy("productId")
+    .uniqueKeys();
   const oldest = await db.priceObservations.orderBy("observedAt").first();
-  const newest = await db.priceObservations.orderBy("observedAt").reverse().first();
+  const newest = await db.priceObservations
+    .orderBy("observedAt")
+    .reverse()
+    .first();
   const byChain: Record<string, number> = {};
-  const woolworths = await db.priceObservations.where("storeChain").equals("woolworths").count();
-  const coles = await db.priceObservations.where("storeChain").equals("coles").count();
+  const woolworths = await db.priceObservations
+    .where("storeChain")
+    .equals("woolworths")
+    .count();
+  const coles = await db.priceObservations
+    .where("storeChain")
+    .equals("coles")
+    .count();
   if (woolworths > 0) byChain.woolworths = woolworths;
   if (coles > 0) byChain.coles = coles;
   return {
