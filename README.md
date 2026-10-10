@@ -20,7 +20,7 @@ Local collection is always available and makes **zero requests to the Chook Chec
 | Community snapshot downloads | Off     | Downloads one bulk, privacy-thresholded community snapshot. It does not send the active page or product ID.                                                              |
 | Price-history contribution   | Off     | Uploads pseudonymous product, price, offer, extraction, surface, and time fields. It excludes page URLs and fairness context.                                            |
 | Fairness study               | Off     | Uploads the history fields plus selected coarse store/region context, fulfilment mode, sign-in state, loyalty eligibility, optional browser family, and instrument mode. |
-| Inline retailer-page UI      | Off     | Lets the user explicitly insert the price overlay from the toolbar. It does not itself enable network access.                                                            |
+| Inline retailer-page UI      | Off     | Automatically shows the chicken badge on product pages while enabled. It does not itself enable network access.                                                          |
 
 Contribution uses a random install-level identifier and separate secret submit and deletion tokens. It is **pseudonymous, not anonymous**: repeated submissions can be linked to that random identifier. Chook Check does not collect a supermarket username, email, password, loyalty number, cart, or order history.
 
@@ -38,7 +38,7 @@ The always-on Chook Check collectors therefore:
 - do not expose web-accessible resources; and
 - avoid account, cart, checkout, login, order, payment, and loyalty-account routes.
 
-The build audit fails CI if those collector guarantees regress. The optional inline overlay is inherently page-visible and can be detected by retailer scripts, so it is injected only after the user requests it and after the original price is captured. Chook Check cannot promise perfect invisibility against browser vulnerabilities, sophisticated timing/fingerprinting techniques, future browser changes, or a retailer that changes content for unrelated reasons.
+The build audit fails CI if those collector guarantees regress. The optional inline overlay is inherently page-visible and can be detected by retailer scripts, so it is off by default. Once enabled in settings, it appears automatically on product pages after the original price is captured; disabling it removes existing badges. Chook Check cannot promise perfect invisibility against browser vulnerabilities, sophisticated timing/fingerprinting techniques, future browser changes, or a retailer that changes content for unrelated reasons.
 
 ## What is measured
 
@@ -52,7 +52,7 @@ Community output is gated at five contributors. A possible differential-pricing 
 
 - `storage`: local observations, settings, consent history, deletion credentials, and downloaded snapshots.
 - `alarms`: local retention, opted-in batch uploads, and opted-in snapshot refreshes.
-- `scripting`: injects the optional overlay only after a toolbar action.
+- `scripting`: injects the optional overlay on product pages only while its setting is enabled.
 - Woolworths and Coles host access: reads approved product, search, browse, and category pages.
 - Chook Check API host access: used only by an enabled network mode or a user-requested server deletion.
 

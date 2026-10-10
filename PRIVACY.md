@@ -20,11 +20,15 @@ On approved Woolworths and Coles product, search, browse, and category routes, t
 - current, regular/“was”, and unit prices;
 - normalized offer information and required quantity when available;
 - retailer, source surface, extraction source, scraper version, and observation time;
-- a random observation ID and whether the capture occurred silently or around a user-activated inline overlay;
+- a random observation ID and whether the capture occurred silently or around a user-enabled inline overlay;
 - explicit page-provided context such as sign-in state, loyalty eligibility, fulfilment mode, and selected store, or `unknown` when it cannot be established; and
 - the retailer page URL.
 
+When fairness study and the relevant sharing choices are enabled, each new observation also stores a local copy of your selected state, city/region, or store. Later edits do not change that historical context. Uploads still obey your current sharing choices. Local JSON exports include this captured context.
+
 The retailer page URL is used for local history and route validation. It is not included in API schema v2 and is never uploaded. The extension does not copy account names, account IDs, email addresses, loyalty numbers, or credentials when detecting coarse page context.
+
+An open approved page is checked once per minute and when its content changes. Repeated unchanged observations are compacted within each UTC hour; different offer/context values and inline comparison phases remain separate. These checks do not refresh the page or contact Chook Check.
 
 Local price observations are removed after 365 days. Settings, consent events, sharing logs, deletion credentials, and the most recently downloaded community snapshot remain until replaced, cleared, or the extension is reset. Browser uninstall behaviour is controlled by the browser and normally removes extension storage.
 
@@ -36,7 +40,7 @@ When enabled, the extension periodically requests a bulk community snapshot. The
 
 ### Price-history contribution
 
-When enabled, the extension creates a pseudonymous contributor credential and uploads recent observations in batches. Submissions include product/catalogue fields, prices, offers, source surface, extraction source, scraper version, capture time, and a random observation ID. History mode forces fairness-specific context to `unknown` or `null` and does not upload page URLs, store/region context, sign-in state, loyalty eligibility, browser family, or overlay comparison IDs.
+When enabled, the extension creates a pseudonymous contributor credential and uploads recent observations in batches. Submissions include product/catalogue fields, prices, offers, source surface, extraction source, scraper version, capture time, and a random observation ID. Inline observations remain local unless fairness contribution is enabled with the required context; they are never relabelled as silent history samples. History mode forces fairness-specific context to `unknown` or `null` and does not upload page URLs, store/region context, sign-in state, loyalty eligibility, browser family, or overlay comparison IDs.
 
 ### Fairness study
 
@@ -53,7 +57,7 @@ Fairness submissions pause until at least one coarse store or region field is se
 
 ### Inline retailer-page UI
 
-When enabled, the user can explicitly inject the Chook Check overlay from the toolbar. The extension captures the retailer-provided price before inserting the overlay and may capture a changed price afterwards using a random comparison ID. Enabling the overlay does not itself enable community downloads or uploads.
+When enabled, the chicken badge appears automatically on current and subsequent product pages. Turning the setting off removes existing badges. The extension saves the retailer-provided price before inserting the overlay and samples the price one second afterwards, including unchanged prices, using a random comparison ID. Enabling the overlay does not itself enable community downloads or uploads.
 
 Retailer scripts can observe DOM changes made by the overlay. The silent collector does not modify the page, emit document events or `window.postMessage` messages, or expose web-accessible resources, but Chook Check cannot guarantee that its presence is impossible to infer.
 
