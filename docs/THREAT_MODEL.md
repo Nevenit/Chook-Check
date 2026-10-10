@@ -20,8 +20,8 @@ This model covers the browser extension, its Cloudflare Worker/D1 API, and the d
 - Optional coarse context such as state, city/region, store, sign-in, loyalty eligibility, and fulfilment.
 - Pseudonymous contributor ID, submit token, and deletion token.
 - Raw contributed observations in D1.
-- Thresholded daily aggregates and differential-pricing signals.
-- The integrity of public price history and fairness results.
+- Thresholded daily aggregates, which are retained but not published.
+- The integrity of the published community snapshot (current prices and counts), and of differential-pricing analysis if it is published later.
 
 ## Trust boundaries
 
