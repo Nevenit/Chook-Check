@@ -46,7 +46,7 @@ Each local observation records a product identifier, name and available catalogu
 
 The collector conservatively records `guest`/`signed_in`, loyalty eligibility, fulfilment mode, and selected store only when the page exposes an explicit matching state. Missing or ambiguous values stay `unknown`; account identifiers are not copied. These context fields are uploaded only in fairness-study mode and subject to its sharing controls.
 
-Community output is gated at five contributors on the same day. The published snapshot contains, for each qualifying product, the current median, minimum, and maximum price, observation and contributor counts, and promotion frequency. The API also contains tested analysis for possible differential pricing (at least ten contributors, at least three in each price group, strict matching on known context, and repetition in at least two time buckets), but it does not publish results yet. Any such signal would be evidence for review, not proof.
+Community output is gated at five contributors in the last seven days. The published snapshot contains, for each qualifying product, the current median, minimum, and maximum price, observation and contributor counts, and promotion frequency. The API also contains tested analysis for possible differential pricing (at least ten contributors, at least three in each price group, strict matching on known context, and repetition in at least two time buckets), but it does not publish results yet. Any such signal would be evidence for review, not proof.
 
 ## Permissions
 
