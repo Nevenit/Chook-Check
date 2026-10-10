@@ -60,7 +60,7 @@ Firefox builds require Firefox 140 or newer and declare Firefox’s built-in opt
 
 ## Manual installation
 
-Requires Node.js 20 or newer.
+Requires Node.js 24 (see `.nvmrc`).
 
 ### Chrome, Edge, or Brave
 
@@ -77,7 +77,7 @@ Requires Node.js 20 or newer.
 ## Development and verification
 
 ```bash
-npm install
+npm ci --include=dev
 npm run dev
 npm run dev:firefox
 npm run typecheck

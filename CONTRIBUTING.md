@@ -4,7 +4,7 @@ Thanks for considering a contribution.
 
 ## Prerequisites
 
-- Node 20+
+- Node 24 (see `.nvmrc`)
 - npm
 - Chrome and/or Firefox for testing
 
@@ -13,7 +13,7 @@ Thanks for considering a contribution.
 ```bash
 git clone https://github.com/Nevenit/Chook-Check.git
 cd Chook-Check
-npm install
+npm ci --include=dev
 ```
 
 ## Running locally
@@ -26,6 +26,8 @@ npm run dev:firefox      # Firefox
 Edits to source trigger HMR.
 
 ## Testing
+
+Use Node 24 (`nvm use` reads `.nvmrc`) and install locked dependencies with `npm ci --include=dev`. The test scripts set `NODE_ENV=test` even when the invoking shell uses production mode.
 
 ```bash
 npm test                 # watch mode
