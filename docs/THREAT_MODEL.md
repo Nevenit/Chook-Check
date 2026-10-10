@@ -52,7 +52,10 @@ Controls:
 - Silent collectors run as minimal manifest scripts in an isolated world.
 - They do not modify the page, dispatch page events, call `window.postMessage`, or expose web-accessible resources.
 - CI audits production manifests and collector bundles for those regressions.
-- The inline overlay is a separate runtime script, off by default and injected only after user action.
+- The inline overlay is a separate runtime script, off by default. Enabling its setting authorizes automatic insertion on current and subsequent product pages; disabling it removes existing badges. Silent collection is paused through an internal extension message before insertion and stays paused until navigation/reload, including if injection fails.
+- Pre-UI persistence must succeed before insertion. A fixed one-second post-UI sample includes unchanged prices; incomplete, ambiguous, stale, or context-mismatched pairs do not support observer-effect output.
+- User-entered region/store choices are snapshotted only for captures with the corresponding fairness sharing enabled, then filtered again by current sharing choices before upload. Current settings never supply missing historical context.
+- Context-aware UTC-hour deduplication preserves independent samples without mutating previously submitted observations. Older collection versions are excluded from fairness analysis rather than assigning them reconstructed context.
 - The baseline price is persisted before the overlay makes a page-visible change; changed post-overlay prices use a random comparison ID.
 
 Residual risk: the overlay is deliberately visible. Perfect non-detection cannot be guaranteed against browser vulnerabilities, future platform changes, sophisticated side channels, or retailer experiments unrelated to the extension. A retailer may also serve different data before any extension code runs.
@@ -73,7 +76,7 @@ Residual risk: retailer markup can change, and product pages may contain unrelat
 
 Controls:
 
-- Community downloads, history uploads, fairness uploads, and inline UI have separate settings and versioned disclosures.
+- Community downloads, history uploads, fairness uploads, and inline UI have separate settings and versioned disclosures. Submission rechecks consent before each batch and serializes overlapping submission runs; an already-sent request cannot be recalled by opt-out.
 - Default settings deny every Chook Check network action.
 - All API access is centralized in the background worker and guarded by a network-policy function with unit tests.
 - Legacy contribution settings migrate to a paused, re-consent-required state.
