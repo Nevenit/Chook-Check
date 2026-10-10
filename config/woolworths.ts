@@ -2,7 +2,7 @@ import type { ScraperConfig } from "@/lib/types";
 
 export const woolworthsConfig: ScraperConfig = {
   chain: "woolworths",
-  version: "2.0.0",
+  version: "2.2.0",
   productPage: {
     urlPattern: "/shop/productdetails/",
     selectors: {

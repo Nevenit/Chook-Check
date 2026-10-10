@@ -44,8 +44,8 @@ const PRIVACY_MODES: Array<{
   },
   {
     key: "inlineOverlayEnabled",
-    label: "Allow inline retailer-page UI",
-    summary: "Let you explicitly show an overlay from the toolbar.",
+    label: "Show price history on product pages",
+    summary: "Automatically show the chicken badge as you browse products.",
   },
 ];
 

@@ -1,5 +1,11 @@
+import {
+  isRetailerProductUrl,
+  showInlineOverlay,
+  syncInlineOverlays,
+} from "@/lib/inline-overlay";
+import { submitPendingObservations } from "@/lib/contribution";
 import { db } from "@/lib/db";
-import { saveObservation, initDefaults } from "@/lib/store";
+import { saveCapturedObservation, initDefaults } from "@/lib/store";
 import { deleteOlderThan } from "@/lib/retention";
 import { getProductHistory, getProductStats } from "@/lib/data";
 import {
@@ -11,93 +17,16 @@ import {
   deleteContributorData,
   downloadCommunitySnapshot,
   registerContributor,
-  submitObservations,
 } from "@/lib/api";
 import { assertNetworkActionAllowed } from "@/lib/network-policy";
 import { modesMissingFirefoxConsent } from "@/lib/firefox-data-consent";
 import { isAllowedRetailerRoute } from "@/lib/retailer-routes";
-import type {
-  ObservationV2,
-  PriceObservation,
-  SubmitRequestV2,
-  UserSettings,
-} from "@/lib/types";
+import type { PriceObservation } from "@/lib/types";
 
 const RETENTION_ALARM = "chook-check-retention";
 const SUBMIT_ALARM = "chook-check-submit";
 const SNAPSHOT_ALARM = "chook-check-snapshot";
 const RETENTION_DAYS = 365;
-const BATCH_SIZE = 50;
-const MAX_AGE_DAYS = 14;
-const activeProducts = new Map<number, string>();
-const activeOverlayTabs = new Set<number>();
-
-function setActiveProduct(tabId: number, productId: string): void {
-  const previousProductId = activeProducts.get(tabId);
-  if (previousProductId && previousProductId !== productId) {
-    activeOverlayTabs.delete(tabId);
-  }
-  activeProducts.set(tabId, productId);
-}
-
-function detectBrowser(): string {
-  const ua = navigator.userAgent;
-  if (ua.includes("Firefox")) return "Firefox";
-  if (ua.includes("Edg")) return "Edge";
-  if (ua.includes("Chrome")) return "Chrome";
-  if (ua.includes("Safari")) return "Safari";
-  return "Unknown";
-}
-
-function toV2Observation(
-  observation: PriceObservation,
-  settings: UserSettings,
-  fairness: boolean,
-): ObservationV2 {
-  return {
-    schemaVersion: 2,
-    clientObservationId: observation.clientObservationId,
-    productId: observation.productId,
-    productName: observation.productName,
-    brand: observation.brand,
-    category: observation.category,
-    gtin: observation.gtin,
-    storeChain: observation.storeChain,
-    currentPriceCents: observation.priceCents,
-    regularPriceCents: observation.wasPriceCents,
-    unitPriceCents: observation.unitPriceCents,
-    unitMeasure: observation.unitMeasure,
-    offerType: observation.promoType,
-    offerTextNormalized: observation.offerTextNormalized,
-    offerId: observation.offerId,
-    requiredQuantity: observation.requiredQuantity,
-    sourceSurface: observation.sourceSurface,
-    extractionSource: observation.extractionSource,
-    scraperVersion: observation.scraperVersion,
-    instrumentMode: fairness ? observation.instrumentMode : "silent",
-    capturePhase: fairness ? observation.capturePhase : "baseline",
-    comparisonId: fairness ? observation.comparisonId : null,
-    storeId:
-      fairness && settings.shareStore
-        ? (observation.storeId ?? settings.userStoreName) || null
-        : null,
-    coarseRegion:
-      fairness && (settings.shareState || settings.shareCity)
-        ? [
-            settings.shareState ? settings.userState : "",
-            settings.shareCity ? settings.userCity : "",
-          ]
-            .filter(Boolean)
-            .join("/") || null
-        : null,
-    fulfilmentMode: fairness ? observation.fulfilmentMode : "unknown",
-    authState: fairness ? observation.authState : "unknown",
-    loyaltyState: fairness ? observation.loyaltyState : "unknown",
-    browserFamily: fairness && settings.shareBrowser ? detectBrowser() : null,
-    clientObservedAt: observation.observedAt,
-  };
-}
-
 async function ensureContributor(userInitiated: boolean): Promise<void> {
   const settings = await getSettings(db);
   if (
@@ -111,65 +40,6 @@ async function ensureContributor(userInitiated: boolean): Promise<void> {
     userInitiated,
   });
   await saveContributorCredentials(db, await registerContributor());
-}
-
-async function handleSubmission(): Promise<void> {
-  const settings = await getSettings(db);
-  if (settings.pendingServerDeletion) return;
-  const fairnessContextReady = Boolean(
-    (settings.shareStore && settings.userStoreName) ||
-    (settings.shareState && settings.userState) ||
-    (settings.shareCity && settings.userCity),
-  );
-  const fairness = settings.fairnessStudyEnabled && fairnessContextReady;
-  if (!fairness && !settings.historyContributionEnabled) return;
-  const mode: SubmitRequestV2["mode"] = fairness ? "fairness" : "history";
-  assertNetworkActionAllowed(
-    settings,
-    fairness ? "submit_fairness" : "submit_history",
-  );
-  if (!settings.contributorId || !settings.submitToken) return;
-
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS);
-  const eligible = (
-    await db.priceObservations.filter((o) => !o.contributed).toArray()
-  ).filter((observation) => observation.observedAt >= cutoff.toISOString());
-
-  for (let index = 0; index < eligible.length; index += BATCH_SIZE) {
-    const batch = eligible.slice(index, index + BATCH_SIZE);
-    const request: SubmitRequestV2 = {
-      mode,
-      observations: batch.map((observation) =>
-        toV2Observation(observation, settings, fairness),
-      ),
-    };
-    try {
-      const result = await submitObservations(request, settings.submitToken);
-      const ids = batch.flatMap((observation) =>
-        observation.id === undefined ? [] : [observation.id],
-      );
-      if (ids.length > 0) {
-        await db.priceObservations
-          .where("id")
-          .anyOf(ids)
-          .modify({ contributed: true });
-      }
-      await db.sharingLog.add({
-        timestamp: new Date().toISOString(),
-        observationCount: result.accepted,
-        status: "success",
-      });
-    } catch (error) {
-      await db.sharingLog.add({
-        timestamp: new Date().toISOString(),
-        observationCount: batch.length,
-        status: "error",
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-      });
-      return;
-    }
-  }
 }
 
 async function syncCommunitySnapshot(): Promise<number> {
@@ -253,7 +123,7 @@ function isValidObservationFromSender(
   observation: PriceObservation,
   sender: Browser.runtime.MessageSender,
 ): boolean {
-  const senderUrl = sender.url;
+  const senderUrl = sender.tab?.url ?? sender.url;
   if (!senderUrl || !observation?.storeChain) return false;
   return (
     isAllowedRetailerRoute(senderUrl, observation.storeChain) &&
@@ -279,7 +149,7 @@ export default defineBackground(() => {
         settings.historyContributionEnabled ||
         settings.fairnessStudyEnabled
       ) {
-        await handleSubmission();
+        await submitPendingObservations(db);
       }
     } else if (alarm.name === SNAPSHOT_ALARM) {
       const settings = await getSettings(db);
@@ -291,37 +161,35 @@ export default defineBackground(() => {
     void disableModesWithRevokedFirefoxConsent();
   });
 
-  browser.tabs.onRemoved.addListener((tabId) => {
-    activeProducts.delete(tabId);
-    activeOverlayTabs.delete(tabId);
-  });
-  browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (changeInfo.status !== "loading") return;
-    activeProducts.delete(tabId);
-    activeOverlayTabs.delete(tabId);
-  });
-
   browser.runtime.onMessage.addListener((message, sender) => {
     if (message.type === "PRICE_OBSERVATION" && message.data) {
       if (!isValidObservationFromSender(message.data, sender)) return false;
-      if (sender.tab?.id !== undefined) {
-        setActiveProduct(sender.tab.id, message.data.productId);
-      }
-      return saveObservation(db, message.data).then(() => true);
-    }
-
-    if (message.type === "ACTIVE_PRODUCT" && message.productId) {
-      if (sender.tab?.id !== undefined) {
-        setActiveProduct(sender.tab.id, message.productId);
-      }
-      return true;
+      // sender.url retains the original document URL across SPA navigation.
+      const pageUrl = sender.tab?.url ?? sender.url;
+      return saveCapturedObservation(db, message.data).then(async (saved) => {
+        if (
+          message.data.capturePhase === "baseline" &&
+          sender.tab?.id !== undefined &&
+          pageUrl &&
+          isRetailerProductUrl(pageUrl)
+        ) {
+          await showInlineOverlay(db, sender.tab.id, pageUrl).catch(
+            () => undefined,
+          );
+        }
+        return saved;
+      });
     }
 
     if (message.type === "GET_ACTIVE_PRODUCT_DATA") {
       return (async () => {
         const tabId = await getActiveTabId();
         const productId =
-          tabId === null ? null : (activeProducts.get(tabId) ?? null);
+          tabId === null
+            ? null
+            : await browser.tabs
+                .sendMessage(tabId, { type: "GET_ACTIVE_PRODUCT_ID" })
+                .catch(() => null);
         if (!productId) return null;
         const [history, stats, community] = await Promise.all([
           getProductHistory(db, productId),
@@ -347,21 +215,16 @@ export default defineBackground(() => {
       return syncCommunitySnapshot();
     }
 
-    if (message.type === "ACTIVATE_INLINE_OVERLAY") {
-      return (async () => {
-        const settings = await getSettings(db);
-        if (!settings.inlineOverlayEnabled)
-          throw new Error("Inline overlay is disabled");
-        const tabId = await getActiveTabId();
-        if (tabId === null) throw new Error("No active retailer tab");
-        if (activeOverlayTabs.has(tabId)) return true;
-        const result = await browser.scripting.executeScript({
-          target: { tabId },
-          files: ["/content-scripts/overlay.js"],
-        });
-        activeOverlayTabs.add(tabId);
-        return result;
-      })();
+    if (message.type === "SYNC_INLINE_OVERLAYS") {
+      return syncInlineOverlays(db);
+    }
+
+    if (message.type === "INLINE_OVERLAY_ALLOWED") {
+      return getSettings(db).then(
+        (settings) =>
+          settings.inlineOverlayEnabled &&
+          isRetailerProductUrl(sender.tab?.url ?? sender.url ?? ""),
+      );
     }
 
     if (message.type === "DELETE_SERVER_DATA") {
