@@ -133,7 +133,6 @@ describe("settings", () => {
       maxCents: 300,
       observationCount: 5,
       contributorCount: 5,
-      priceHistory: [],
       promoFrequency: {},
       downloadedAt: new Date().toISOString(),
     });

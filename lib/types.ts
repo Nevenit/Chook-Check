@@ -151,17 +151,6 @@ export interface SubmitResponse {
   reasons?: string[];
 }
 
-export interface DifferentialSignal {
-  classification:
-    | "insufficient_evidence"
-    | "contextual_difference"
-    | "possible_differential_pricing";
-  confidence: "none" | "low" | "moderate";
-  explanation: string;
-  matchedContributorCount: number;
-  priceGroups: Array<{ priceCents: number; contributorCount: number }>;
-}
-
 export interface ProductStats {
   productId: string;
   productName: string;
@@ -173,14 +162,7 @@ export interface ProductStats {
   maxCents: number | null;
   observationCount: number;
   contributorCount: number;
-  priceHistory: Array<{
-    date: string;
-    medianCents: number;
-    minCents: number;
-    maxCents: number;
-  }>;
   promoFrequency: Record<string, number>;
-  differentialSignal?: DifferentialSignal;
 }
 
 export interface CommunitySnapshot extends ProductStats {

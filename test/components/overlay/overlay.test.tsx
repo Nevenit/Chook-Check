@@ -60,7 +60,6 @@ describe("OverlayPanel", () => {
           maxCents: 800,
           observationCount: 10,
           contributorCount: 5,
-          priceHistory: [],
           promoFrequency: {},
         }}
       />,
@@ -89,7 +88,6 @@ describe("OverlayPanel", () => {
           maxCents: null,
           observationCount: 2,
           contributorCount: 2,
-          priceHistory: [],
           promoFrequency: {},
         }}
       />,
