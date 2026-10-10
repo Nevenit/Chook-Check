@@ -122,27 +122,30 @@ Run on 2026-10-10 against local `wrangler dev` with synthetic data and per-invoc
 
 Every snapshot request would have failed on either plan's query limit, and cleanup fell behind at beta scale, which would keep raw rows past the promised 180 days.
 
-**After** (API branch `free-plan-pipeline`, alpha dataset rebuilt with migration 0002):
+**After** (API branch `free-plan-pipeline` including the final-review fixes, alpha dataset rebuilt with migration 0002). Steady state was simulated by ageing every product's last refresh by 25 hours and marking the 729 products observed in the last day as changed:
 
-| Invocation                             | Queries | Rows read          | Rows written |
-| -------------------------------------- | ------- | ------------------ | ------------ |
-| Snapshot download (200, 28 KB)         | 4       | 2                  | 2            |
-| Snapshot revalidation (304)            | 3       | 3                  | 1            |
-| Per-product stats                      | 3       | 1                  | 2            |
-| Upload of 50 observations              | 8       | 1,156              | 353          |
-| Every-minute maintenance run (45 runs) | 6–16    | mean 56k, max 619k | mean 800     |
-| 30-minute snapshot publication         | 5       | 4,002              | 3            |
+| Invocation                                       | Queries | Rows read | Rows written |
+| ------------------------------------------------ | ------- | --------- | ------------ |
+| Snapshot download (200, 28 KB)                   | 4       | 2         | 2            |
+| Snapshot revalidation (304)                      | 3       | 3         | 1            |
+| Per-product stats                                | 3       | 1         | 2            |
+| Upload of 50 observations                        | 8       | 1,238     | 403          |
+| Every-minute run, idle                           | 5       | 5         | 0            |
+| Every-minute run, refreshing 100 products        | 9–10    | 9k–586k   | 93–300       |
+| 30-minute snapshot run (with rate-limit cleanup) | 3–7     | about 225 | 0–3          |
 
-45 maintenance runs refreshed all 3,999 products and expired all 20 days of out-of-window data. The first estimate of steady-state stats refreshing was about 5.0M rows read per day at alpha scale, over the Free limit. Refreshing each changed product at most daily and rechecking only public products brought it to about 1.6M, so the Free plan supports roughly 80 contributors at this usage. CPU time was not measurable locally.
+The backfill (45 runs) refreshed all 4,000 products and expired all 20 days of out-of-window data. The simulated day's refreshes read 1.35M rows in eight runs. With idle minutes, snapshot runs, and uploads, that is about 1.45M rows read and 22k rows written per day, 29% and 22% of the Free allowances, so the Free plan supports roughly 100 contributors at this usage. CPU time was not measurable locally.
 
-Requiring five contributors on the same recent day leaves 112 of 4,000 synthetic products public at alpha scale; the previous rule published 2,579.
+The first steady-state estimate exceeded the Free read limit (about 5.0M rows a day), so each changed product now refreshes at most daily and only public products get the daily recheck. The final review then found that the every-minute product selection still scanned settled and throttled products (about 8M rows a day at this scale) and that rate-limit cleanup scanned every minute; indexed due times and moving cleanup to the 30-minute job reduced an idle minute to 5 rows. Contributor deletions now leave the published stats on the next refresh instead of up to a day later.
+
+Requiring five contributors on the same recent day leaves about 110 of 4,000 synthetic products public at alpha scale; the previous rule published about 2,550.
 
 ## Remaining work
 
 1. Finish Firefox runtime checks, including optional data-collection permission requests and revocation. The cached browser had a Playwright protocol mismatch; a matching Firefox 155 build launched successfully, but its privileged add-on debugging page stalled and profile sideloading did not register the extension. No automated Firefox extension runtime result is claimed; the user subsequently reported that the earlier local workflows appeared to work. A passing Firefox build does not establish those behaviors.
 2. Exercise live product/search/category pages, lazy loading, sale/quantity offers, unavailable products, and excluded routes in both browsers. Add sanitized fixtures for failures.
 3. Complete the privacy matrix in real browsers: mode combinations, scheduled alarms, Firefox permissions, and upgrade consent. Revocation while uploading, deletion retry, and the cache reset fix have automated Chromium coverage.
-4. Repeat the local API end-to-end run against the redesigned pipeline, and check Worker CPU metrics after deployment. Load testing set the Free-plan volume at about 80 contributors.
+4. Repeat the local API end-to-end run against the redesigned pipeline, and check Worker CPU metrics after deployment. Load testing set the Free-plan volume at about 100 contributors.
 5. Run the private local-history alpha and record actual browser/retailer coverage. Reconcile public claims and prepare release artifacts only after the remaining gates pass.
 
 The detailed checklist is in [the readiness plan](superpowers/plans/2026-09-06-release-readiness.md). No production deployment, store submission, or external tester outreach has occurred.
