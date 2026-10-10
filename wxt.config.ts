@@ -1,8 +1,18 @@
 import { defineConfig } from "wxt";
+import { PRODUCTION_API_ORIGIN, resolveApiOrigin } from "./lib/api-origin";
+
+// Test builds may target a local `wrangler dev` API; release builds never do.
+const apiOrigin = resolveApiOrigin(process.env.CHOOK_API_ORIGIN);
+const localApi = apiOrigin !== PRODUCTION_API_ORIGIN;
 
 export default defineConfig({
   manifestVersion: 3,
   modules: ["@wxt-dev/module-react"],
+  vite: () => ({
+    define: {
+      "import.meta.env.CHOOK_API_ORIGIN": JSON.stringify(apiOrigin),
+    },
+  }),
   hooks: {
     "build:manifestGenerated": (_wxt, manifest) => {
       manifest.content_scripts ??= [];
@@ -21,7 +31,7 @@ export default defineConfig({
     },
   },
   manifest: {
-    name: "Chook Check",
+    name: localApi ? "Chook Check (local API)" : "Chook Check",
     description:
       "Track Australian supermarket prices, detect personalised pricing, and compare across Woolworths and Coles.",
     version: "0.1.0",
@@ -29,7 +39,7 @@ export default defineConfig({
     host_permissions: [
       "https://www.woolworths.com.au/*",
       "https://www.coles.com.au/*",
-      "https://chook-check-api.nevenit.workers.dev/*",
+      `${apiOrigin}/*`,
     ],
     browser_specific_settings: {
       gecko: {

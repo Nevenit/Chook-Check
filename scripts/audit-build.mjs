@@ -2,6 +2,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const outputs = ["chrome-mv3", "firefox-mv3"];
+const releaseHostPermissions = [
+  "https://www.woolworths.com.au/*",
+  "https://www.coles.com.au/*",
+  "https://chook-check-api.nevenit.workers.dev/*",
+];
 const expectedCollectors = new Map([
   ["https://www.woolworths.com.au/*", "woolworths-collector.js"],
   ["https://www.coles.com.au/*", "coles-collector.js"],
@@ -29,6 +34,15 @@ for (const output of outputs) {
     readFileSync(join(outputDir, "manifest.json"), "utf8"),
   );
   const contentScripts = manifest.content_scripts ?? [];
+
+  if (
+    JSON.stringify(manifest.host_permissions) !==
+    JSON.stringify(releaseHostPermissions)
+  ) {
+    throw new Error(
+      `${output}: host permissions differ from a release build (built with CHOOK_API_ORIGIN?)`,
+    );
+  }
 
   if (manifest.web_accessible_resources?.length) {
     throw new Error(`${output}: web-accessible resources must remain empty`);
