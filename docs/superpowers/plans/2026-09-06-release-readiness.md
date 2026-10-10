@@ -124,7 +124,7 @@ Build a manual QA matrix across Chrome and Firefox, both retailers, and these sc
 - [ ] Test public quorum boundaries, known contextual differences, repeated matched price groups, and observer pairs. Include cases that must produce insufficient evidence.
 - [ ] Exercise raw expiry and aggregate materialization using controlled dates, including below-quorum days, three-year expiry, and deletion before raw expiry.
 - [ ] Check snapshot contents, ETag refresh/304 behavior, and removal of stale client data after a changed snapshot.
-- [ ] Measure Worker/D1 work and payload sizes with a representative synthetic dataset. Review the snapshot route's per-product queries and aggregation before the ETag check, and the cleanup job's 100-product-day batch limit. Set a supported volume and confirm retention can keep up.
+- [x] Measure Worker/D1 work and payload sizes with a representative synthetic dataset. Review the snapshot route's per-product queries and aggregation before the ETag check, and the cleanup job's 100-product-day batch limit. Set a supported volume and confirm retention can keep up. _Done 2026-10-10: the API was redesigned for Workers Free; supported volume is about 80 contributors (roughly 3,000 accepted observations a day). See the [release validation](../../RELEASE_VALIDATION.md#community-api-load-test)._
 - [ ] Document deployment secrets, migration steps, operational checks, and rollback/recovery procedures without assuming migrations can be reversed safely.
 
 **Gate:** The complete opt-in/submission/read/deletion cycle passes, public outputs meet their thresholds, and retention and request costs remain within the declared operating envelope.

@@ -36,7 +36,7 @@ Local price observations are removed after 365 days. Settings, consent events, s
 
 ### Community snapshot downloads
 
-When enabled, the extension periodically requests a bulk community snapshot. The request does not contain the current retailer URL or a product ID. The API and Cloudflare receive ordinary request metadata, including an IP address and user-agent information supplied by the browser.
+When enabled, the extension periodically requests a bulk community snapshot. The request does not contain the current retailer URL or a product ID. The snapshot lists only products observed by at least five contributors on the same recent day, with aggregate fields: product ID, name, brand, retailer, current median, minimum, and maximum price, observation and contributor counts, and promotion frequency. The API and Cloudflare receive ordinary request metadata, including an IP address and user-agent information supplied by the browser.
 
 ### Price-history contribution
 

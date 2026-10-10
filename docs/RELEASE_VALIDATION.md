@@ -106,12 +106,43 @@ All 23 automated checks passed. Not covered: Firefox (including data-collection 
 
 **Live retailers cannot be automated from this environment.** Both retailers' bot protection blocked the automated Chromium session: Woolworths returned `403 Access Denied` after its home page, and Coles served a blank challenge page. The live-page rows in the [QA checklist](QA_CHECKLIST.md) therefore need a person in a normal browser.
 
+## Community API load test
+
+Run on 2026-10-10 against local `wrangler dev` with synthetic data and per-invocation D1 instrumentation (queries and the rows read and written that D1 reports). The API will run on the Workers Free plan: 50 D1 queries per invocation, 10 ms CPU per request or cron run, 5M rows read and 100k rows written per day, and a 500 MB database.
+
+**Before** (API `main` at `00bdf76`, 4,000 synthetic products):
+
+| Measurement                                | Alpha: 30 contributors, 190k rows | Beta: 300 contributors, 1.9M rows |
+| ------------------------------------------ | --------------------------------- | --------------------------------- |
+| Snapshot request: queries                  | 5,167                             | 8,005                             |
+| Snapshot request: rows read, also on a 304 | 546k                              | 5.5M                              |
+| Snapshot size                              | 7.5 MB                            | 31.6 MB                           |
+| Hourly cleanup: queries / rows read        | ~210 / ~300k                      | 297 / 3.25M                       |
+| Upload of 50 observations: queries         | ~153 (from code)                  | ~153                              |
+
+Every snapshot request would have failed on either plan's query limit, and cleanup fell behind at beta scale, which would keep raw rows past the promised 180 days.
+
+**After** (API branch `free-plan-pipeline`, alpha dataset rebuilt with migration 0002):
+
+| Invocation                             | Queries | Rows read          | Rows written |
+| -------------------------------------- | ------- | ------------------ | ------------ |
+| Snapshot download (200, 28 KB)         | 4       | 2                  | 2            |
+| Snapshot revalidation (304)            | 3       | 3                  | 1            |
+| Per-product stats                      | 3       | 1                  | 2            |
+| Upload of 50 observations              | 8       | 1,156              | 353          |
+| Every-minute maintenance run (45 runs) | 6–16    | mean 56k, max 619k | mean 800     |
+| 30-minute snapshot publication         | 5       | 4,002              | 3            |
+
+45 maintenance runs refreshed all 3,999 products and expired all 20 days of out-of-window data. The first estimate of steady-state stats refreshing was about 5.0M rows read per day at alpha scale, over the Free limit. Refreshing each changed product at most daily and rechecking only public products brought it to about 1.6M, so the Free plan supports roughly 80 contributors at this usage. CPU time was not measurable locally.
+
+Requiring five contributors on the same recent day leaves 112 of 4,000 synthetic products public at alpha scale; the previous rule published 2,579.
+
 ## Remaining work
 
 1. Finish Firefox runtime checks, including optional data-collection permission requests and revocation. The cached browser had a Playwright protocol mismatch; a matching Firefox 155 build launched successfully, but its privileged add-on debugging page stalled and profile sideloading did not register the extension. No automated Firefox extension runtime result is claimed; the user subsequently reported that the earlier local workflows appeared to work. A passing Firefox build does not establish those behaviors.
 2. Exercise live product/search/category pages, lazy loading, sale/quantity offers, unavailable products, and excluded routes in both browsers. Add sanitized fixtures for failures.
 3. Complete the privacy matrix in real browsers: mode combinations, scheduled alarms, Firefox permissions, and upgrade consent. Revocation while uploading, deletion retry, and the cache reset fix have automated Chromium coverage.
-4. Exercise public threshold edges, retention throughput, snapshot costs, and cache invalidation at representative volume. The basic extension/API cycle passed against a local API.
+4. Repeat the local API end-to-end run against the redesigned pipeline, and check Worker CPU metrics after deployment. Load testing set the Free-plan volume at about 80 contributors.
 5. Run the private local-history alpha and record actual browser/retailer coverage. Reconcile public claims and prepare release artifacts only after the remaining gates pass.
 
 The detailed checklist is in [the readiness plan](superpowers/plans/2026-09-06-release-readiness.md). No production deployment, store submission, or external tester outreach has occurred.
