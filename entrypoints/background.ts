@@ -9,6 +9,7 @@ import { saveCapturedObservation, initDefaults } from "@/lib/store";
 import { deleteOlderThan } from "@/lib/retention";
 import { getProductHistory, getProductStats } from "@/lib/data";
 import {
+  COMMUNITY_SNAPSHOT_ETAG_KEY,
   getSettings,
   saveContributorCredentials,
   updateSetting,
@@ -45,11 +46,10 @@ async function ensureContributor(userInitiated: boolean): Promise<void> {
 async function syncCommunitySnapshot(): Promise<number> {
   const settings = await getSettings(db);
   assertNetworkActionAllowed(settings, "download_snapshot");
-  const currentEtag = await browser.storage.local.get("communitySnapshotEtag");
+  const stored = await browser.storage.local.get(COMMUNITY_SNAPSHOT_ETAG_KEY);
+  const currentEtag = stored[COMMUNITY_SNAPSHOT_ETAG_KEY];
   const result = await downloadCommunitySnapshot(
-    typeof currentEtag.communitySnapshotEtag === "string"
-      ? currentEtag.communitySnapshotEtag
-      : undefined,
+    typeof currentEtag === "string" ? currentEtag : undefined,
   );
   if (result.notModified) return 0;
 
@@ -64,7 +64,9 @@ async function syncCommunitySnapshot(): Promise<number> {
     communitySnapshotSyncedAt: downloadedAt,
   });
   if (result.etag) {
-    await browser.storage.local.set({ communitySnapshotEtag: result.etag });
+    await browser.storage.local.set({
+      [COMMUNITY_SNAPSHOT_ETAG_KEY]: result.etag,
+    });
   }
   return result.products.length;
 }
