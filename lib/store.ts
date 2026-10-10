@@ -1,64 +1,47 @@
+import { observationKey, SAMPLE_WINDOW_MS } from "./observation-key";
 import type { ChookCheckDB } from "./db";
 import type { PriceObservation, UserSettings } from "./types";
 
 /**
- * Computes the local calendar day boundaries for a given ISO timestamp.
- * Uses the browser's local timezone (correct for Australian users —
- * prices change at local midnight, not UTC midnight).
- */
-function getLocalDayBounds(isoTimestamp: string): {
-  start: string;
-  end: string;
-} {
-  const date = new Date(isoTimestamp);
-  const dayStart = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
-  const dayEnd = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate() + 1,
-  );
-  return {
-    start: dayStart.toISOString(),
-    end: dayEnd.toISOString(),
-  };
-}
-
-/**
- * Saves a price observation with deduplication.
- * - Same product + same local day + same price → update observedAt
- * - Same product + same local day + different price → insert new row
- * - No match → insert new row
- *
- * Never throws — logs errors and continues so the scraping pipeline is not broken.
+ * Retain the first immutable sample for each product/context/UTC hour.
+ * Exact ID retries and repeat notifications are idempotent; distinct capture
+ * phases, comparison IDs, offers, contexts, and hours remain independent.
+ * Return false on persistence failure so inline UI cannot claim a saved baseline.
  */
 export async function saveObservation(
   db: ChookCheckDB,
   obs: PriceObservation,
-): Promise<void> {
+): Promise<boolean> {
+  const persist = () =>
+    db.transaction("rw", db.priceObservations, async () => {
+      if (
+        await db.priceObservations
+          .where("clientObservationId")
+          .equals(obs.clientObservationId)
+          .first()
+      )
+        return;
+      const hour =
+        Math.floor(Date.parse(obs.observedAt) / SAMPLE_WINDOW_MS) *
+        SAMPLE_WINDOW_MS;
+      const existing = await db.priceObservations
+        .where("[productId+observedAt]")
+        .between(
+          [obs.productId, new Date(hour).toISOString()],
+          [obs.productId, new Date(hour + SAMPLE_WINDOW_MS).toISOString()],
+          true,
+          false,
+        )
+        .toArray();
+      const key = observationKey(obs);
+      if (!existing.some((row) => observationKey(row) === key)) {
+        await db.priceObservations.add(obs);
+      }
+    });
+
   try {
-    const { start, end } = getLocalDayBounds(obs.observedAt);
-
-    const existing = await db.priceObservations
-      .where("productId")
-      .equals(obs.productId)
-      .filter((e) => e.observedAt >= start && e.observedAt < end)
-      .toArray();
-
-    const samePriceMatch = existing.find(
-      (e) => e.priceCents === obs.priceCents,
-    );
-
-    if (samePriceMatch) {
-      await db.priceObservations.update(samePriceMatch.id!, {
-        observedAt: obs.observedAt,
-      });
-    } else {
-      await db.priceObservations.add(obs);
-    }
+    await persist();
+    return true;
   } catch (error) {
     if (error instanceof Error && error.name === "QuotaExceededError") {
       console.error(
@@ -71,7 +54,8 @@ export async function saveObservation(
           .where("observedAt")
           .below(cutoff.toISOString())
           .delete();
-        await db.priceObservations.add(obs);
+        await persist();
+        return true;
       } catch {
         console.error(
           "[Chook Check] Storage quota exceeded after cleanup, observation dropped",
@@ -80,7 +64,26 @@ export async function saveObservation(
     } else {
       console.error("[Chook Check] Failed to save observation:", error);
     }
+    return false;
   }
+}
+
+/** Snapshot only the user context selected for fairness at capture time. */
+export async function saveCapturedObservation(
+  db: ChookCheckDB,
+  observation: PriceObservation,
+): Promise<boolean> {
+  const settings = await db.userSettings.get("default");
+  return saveObservation(db, {
+    ...observation,
+    userContextAtCapture: settings?.fairnessStudyEnabled
+      ? {
+          state: settings.shareState ? settings.userState : "",
+          city: settings.shareCity ? settings.userCity : "",
+          store: settings.shareStore ? settings.userStoreName : "",
+        }
+      : null,
+  });
 }
 
 export async function initDefaults(db: ChookCheckDB): Promise<void> {

@@ -50,6 +50,8 @@ export interface PriceObservation {
   pageUrl: string;
   observedAt: string;
   contributed: boolean;
+  // Local snapshot; omitted on older observations rather than reconstructed.
+  userContextAtCapture?: { state: string; city: string; store: string } | null;
 }
 
 export type PrivacyModeKey =
