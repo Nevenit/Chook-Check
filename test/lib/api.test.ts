@@ -5,6 +5,7 @@ import {
   registerContributor,
   submitObservations,
 } from "@/lib/api";
+import { PRODUCTION_API_ORIGIN } from "@/lib/api-origin";
 import type { SubmitRequestV2 } from "@/lib/types";
 
 const mockFetch = vi.fn();
@@ -110,6 +111,19 @@ describe("downloadCommunitySnapshot", () => {
     const url = mockFetch.mock.calls[0][0] as string;
     expect(url).toContain("/api/v2/snapshots/products");
     expect(url).not.toContain("woolworths%3A");
+  });
+
+  it("targets the production API unless a build overrides it", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: () => Promise.resolve({ products: [] }),
+    });
+    await downloadCommunitySnapshot();
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      `${PRODUCTION_API_ORIGIN}/api/v2/snapshots/products`,
+    );
   });
 });
 

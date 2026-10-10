@@ -25,6 +25,23 @@ npm run dev:firefox      # Firefox
 
 Edits to source trigger HMR.
 
+## Testing against a local API
+
+Community features can be exercised end to end without touching production. In a checkout of [chook-check-api](https://github.com/Nevenit/chook-check-api), create its uncommitted `.dev.vars` file (see that README), then:
+
+```bash
+npx wrangler d1 migrations apply chook-check --local
+npm run dev -- --ip 127.0.0.1    # serves http://127.0.0.1:8787
+```
+
+Then build the extension against it:
+
+```bash
+env CHOOK_API_ORIGIN=http://127.0.0.1:8787 npm run build
+```
+
+`CHOOK_API_ORIGIN` accepts only loopback origins. The resulting build is named "Chook Check (local API)", and its only API host permission is that local origin, so it cannot reach production. `npm run audit:build` deliberately fails on these builds; rebuild without the variable before packaging anything.
+
 ## Testing
 
 Use Node 24 (`nvm use` reads `.nvmrc`) and install locked dependencies with `npm ci --include=dev`. The test scripts set `NODE_ENV=test` even when the invoking shell uses production mode.

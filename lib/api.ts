@@ -1,3 +1,4 @@
+import { PRODUCTION_API_ORIGIN } from "./api-origin";
 import type {
   ContributorCredentials,
   ProductStats,
@@ -5,7 +6,7 @@ import type {
   SubmitResponse,
 } from "./types";
 
-const API_BASE = "https://chook-check-api.nevenit.workers.dev";
+const API_BASE = import.meta.env.CHOOK_API_ORIGIN ?? PRODUCTION_API_ORIGIN;
 
 async function readApiError(response: Response): Promise<Error> {
   const payload = await response.json().catch(() => ({}));
