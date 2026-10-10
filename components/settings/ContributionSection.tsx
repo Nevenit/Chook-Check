@@ -128,6 +128,7 @@ export function ContributionSection({
                 <div className={styles.toggleDescription}>{mode.summary}</div>
               </div>
               <ToggleSwitch
+                label={mode.label}
                 checked={settings[mode.key]}
                 onChange={(value) => onToggle(mode.key, value)}
               />
@@ -164,6 +165,7 @@ export function ContributionSection({
                   </div>
                 </div>
                 <ToggleSwitch
+                  label={toggle.label}
                   checked={toggleOn}
                   onChange={(value) => onToggle(toggle.key, value)}
                   disabled={!settings.fairnessStudyEnabled}
@@ -173,6 +175,7 @@ export function ContributionSection({
                 <div className={styles.contextInputRow}>
                   {toggle.inputType === "select" ? (
                     <select
+                      aria-label={toggle.label}
                       className={styles.contextInput}
                       value={settings[toggle.textKey!]}
                       onChange={(event) =>
@@ -189,6 +192,7 @@ export function ContributionSection({
                   ) : (
                     <input
                       type="text"
+                      aria-label={toggle.label}
                       className={styles.contextInput}
                       value={settings[toggle.textKey!]}
                       onChange={(event) =>
