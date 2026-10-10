@@ -1,6 +1,6 @@
 # Release validation
 
-Last updated: 2026-09-11 (Australia/Brisbane).
+Last updated: 2026-10-10 (Australia/Brisbane).
 
 This is an implementation checkpoint, not approval for public release. The code changes were uncommitted at this checkpoint and were committed unchanged on 2026-10-10 (branch `release-readiness`). Live retailer reliability, Firefox runtime behavior, the private alpha, and production deployment remain release gates.
 
@@ -82,12 +82,36 @@ Unit regressions cover default-off behavior, concurrent insertion reservations, 
 
 The user reported that the preceding build's Firefox local workflows appeared to work. The new automatic behavior has been built for Firefox but still needs a live Firefox check after reloading the extension.
 
+## Local API end-to-end check
+
+Run on 2026-10-10 from `main` plus the configurable API origin change.
+
+- **Setup:** API `main` under `wrangler dev` on `http://127.0.0.1:8787`, with fresh local D1 migrations and a development `RATE_LIMIT_SECRET`. Extension built with `CHOOK_API_ORIGIN=http://127.0.0.1:8787` and loaded into Playwright Chromium (build 1234) in a fresh profile.
+- **Retailer pages:** simulated. Coles and Woolworths product URLs were answered locally with a minimal product page (JSON-LD, price element, and page context for a signed-out pickup shopper at a selected store). No live retailer traffic.
+- **Evidence:** every API request was logged through Playwright routing. Server rows were counted with `wrangler d1 execute --local`. Requests to the production API were blocked and counted; there were none.
+
+| Check                     | Result                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default capture           | Rows stored for both retailers; no API requests.                                                                                                                                                                                                                                                                                                              |
+| Inline badge only         | One unchanged `pre_ui`/`post_ui` pair under one comparison ID; no API requests.                                                                                                                                                                                                                                                                               |
+| Community downloads       | One `GET /api/v2/snapshots/products` with no credentials, product ID, or query string. A repeat sync sent `If-None-Match` and received `304`.                                                                                                                                                                                                                 |
+| History contribution      | One registration (`201`). Uploads used the submit token and `mode: "history"`. Observations had no page URL; store, region, and browser family were null; sign-in, loyalty, and fulfilment were `unknown`. The inline pair was not sent.                                                                                                                      |
+| Fairness study            | No upload until a shared context field was set. Rows captured before that stayed unshared. A QLD-only upload carried only the region and the page's sign-in/fulfilment context; the page's store ID was withheld because store sharing was off. Browser family appeared only after its toggle. A row captured in QLD kept QLD after the state changed to NSW. |
+| Opt-out mid-upload        | 60 eligible rows, first batch delayed in flight, mode turned off: that batch of 50 completed and no second batch was sent.                                                                                                                                                                                                                                    |
+| Online server deletion    | `DELETE /api/v2/contributor` (`200`) removed all 56 of that contributor's server rows; local credentials cleared and contribution modes turned off.                                                                                                                                                                                                           |
+| Failed deletion and retry | An aborted deletion left a pending deletion and paused uploads. The next submit alarm retried it successfully and cleared the pending state; the second contributor's server rows reached 0.                                                                                                                                                                  |
+| Sharing log               | One success entry for each accepted upload.                                                                                                                                                                                                                                                                                                                   |
+
+All 23 automated checks passed. Not covered: Firefox (including data-collection permission prompts), simultaneous mode combinations, city/store sharing, recovery-code export, and live retailer pages.
+
+**Live retailers cannot be automated from this environment.** Both retailers' bot protection blocked the automated Chromium session: Woolworths returned `403 Access Denied` after its home page, and Coles served a blank challenge page. The live-page rows in the [QA checklist](QA_CHECKLIST.md) therefore need a person in a normal browser.
+
 ## Remaining work
 
 1. Finish Firefox runtime checks, including optional data-collection permission requests and revocation. The cached browser had a Playwright protocol mismatch; a matching Firefox 155 build launched successfully, but its privileged add-on debugging page stalled and profile sideloading did not register the extension. No automated Firefox extension runtime result is claimed; the user subsequently reported that the earlier local workflows appeared to work. A passing Firefox build does not establish those behaviors.
 2. Exercise live product/search/category pages, lazy loading, sale/quantity offers, unavailable products, and excluded routes in both browsers. Add sanitized fixtures for failures.
-3. Complete the privacy matrix: every opt-in and combination, scheduled alarms, revocation while uploading, offline deletion/recovery, upgrade consent, and cache reset.
-4. Validate the extension/API pair against local or staging endpoints, then exercise public threshold edges, retention throughput, snapshot costs, deletion, and cache invalidation at representative volume.
+3. Complete the privacy matrix in real browsers: mode combinations, scheduled alarms, Firefox permissions, and upgrade consent. Revocation while uploading, deletion retry, and the cache reset fix have automated Chromium coverage.
+4. Exercise public threshold edges, retention throughput, snapshot costs, and cache invalidation at representative volume. The basic extension/API cycle passed against a local API.
 5. Run the private local-history alpha and record actual browser/retailer coverage. Reconcile public claims and prepare release artifacts only after the remaining gates pass.
 
 The detailed checklist is in [the readiness plan](superpowers/plans/2026-09-06-release-readiness.md). No production deployment, store submission, or external tester outreach has occurred.
