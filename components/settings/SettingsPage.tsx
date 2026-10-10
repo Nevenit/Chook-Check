@@ -105,6 +105,9 @@ export function SettingsPage() {
           userInitiated: true,
         });
       }
+      if (key === "inlineOverlayEnabled") {
+        await browser.runtime.sendMessage({ type: "SYNC_INLINE_OVERLAYS" });
+      }
       if (value && key === "communityDownloadsEnabled") {
         await browser.runtime.sendMessage({ type: "SYNC_COMMUNITY_SNAPSHOT" });
       }

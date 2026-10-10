@@ -2,7 +2,7 @@ import type { ScraperConfig } from "@/lib/types";
 
 export const colesConfig: ScraperConfig = {
   chain: "coles",
-  version: "2.0.0",
+  version: "2.2.0",
   productPage: {
     urlPattern: "/product/",
     selectors: {

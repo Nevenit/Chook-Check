@@ -74,7 +74,7 @@ export function scrapeWoolworths(
     isPersonalised,
     sourceSurface: isPersonalised ? "personalised_placement" : "product_page",
     extractionSource: "json_ld",
-    scraperVersion: "2.1.0",
+    scraperVersion: "2.2.0",
     pageUrl: url,
     observedAt: new Date().toISOString(),
   });
@@ -182,7 +182,7 @@ export function scrapeWoolworthsSearchTiles(doc: Document): PriceObservation[] {
       isPersonalised: false,
       sourceSurface: inferWoolworthsTileSurface(window.location.pathname),
       extractionSource: "dom",
-      scraperVersion: "2.1.0",
+      scraperVersion: "2.2.0",
       pageUrl: window.location.href,
       observedAt: new Date().toISOString(),
     };

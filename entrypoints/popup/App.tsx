@@ -86,15 +86,6 @@ export default function App() {
     }
   }
 
-  async function handleShowOverlay() {
-    try {
-      await browser.runtime.sendMessage({ type: "ACTIVATE_INLINE_OVERLAY" });
-      setActionMessage("Inline UI added after the pre-UI price was saved.");
-    } catch {
-      setActionMessage("The inline UI could not be shown on this tab.");
-    }
-  }
-
   if (loading) return null;
 
   return (
@@ -144,11 +135,6 @@ export default function App() {
           {settings?.communityDownloadsEnabled && (
             <button onClick={handleSnapshotRefresh}>
               Refresh community snapshot
-            </button>
-          )}
-          {settings?.inlineOverlayEnabled && (
-            <button onClick={handleShowOverlay} style={{ marginLeft: 8 }}>
-              Show inline UI
             </button>
           )}
           {actionMessage && <p style={{ fontSize: 12 }}>{actionMessage}</p>}

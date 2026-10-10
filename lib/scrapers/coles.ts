@@ -79,7 +79,7 @@ export function scrapeColes(
     isPersonalised: false,
     sourceSurface: "product_page",
     extractionSource: "json_ld",
-    scraperVersion: "2.1.0",
+    scraperVersion: "2.2.0",
     pageUrl: url,
     observedAt: new Date().toISOString(),
   });
@@ -169,7 +169,7 @@ export function scrapeColesSearchTiles(doc: Document): PriceObservation[] {
       isPersonalised: false,
       sourceSurface: inferColesTileSurface(window.location.pathname),
       extractionSource: "dom",
-      scraperVersion: "2.1.0",
+      scraperVersion: "2.2.0",
       pageUrl: window.location.href,
       observedAt: new Date().toISOString(),
     };

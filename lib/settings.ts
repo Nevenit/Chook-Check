@@ -13,11 +13,11 @@ export const MODE_DISCLOSURES: Record<PrivacyModeKey, string> = {
   communityDownloadsEnabled:
     "Downloads a bulk community price snapshot from Chook Check. The service and Cloudflare can receive your IP address and request metadata; no retailer page or product ID is sent.",
   historyContributionEnabled:
-    "Uploads pseudonymous product, price, offer, surface, extraction, and time observations. Page URLs, account identifiers, cart contents, and precise location are never uploaded.",
+    "Uploads pseudonymous product, price, offer, surface, extraction, and time observations from silent collection. Inline captures are excluded. Page URLs, account identifiers, cart contents, and precise location are never uploaded.",
   fairnessStudyEnabled:
-    "Uploads the history fields plus selected coarse region/store context, fulfilment, sign-in state, loyalty eligibility, instrument mode, and browser family only if separately enabled. No email, username, loyalty number, or credential is collected.",
+    "Uploads the history fields plus selected coarse region/store context, fulfilment, sign-in state, loyalty eligibility, instrument mode, and browser family only if separately enabled. Your selected region/store is saved with new observations; later edits do not change older observations. No email, username, loyalty number, or credential is collected.",
   inlineOverlayEnabled:
-    "Allows you to place Chook Check UI into a retailer page from the toolbar. Retailer scripts can detect page changes made by any inline extension UI; this mode does not itself enable Chook Check network access.",
+    "Automatically shows the chicken badge on product pages while enabled. Turning this off removes existing badges. Retailer scripts can detect page changes made by any inline extension UI; this mode does not itself enable Chook Check network access.",
 };
 
 export async function getSettings(db: ChookCheckDB): Promise<UserSettings> {
