@@ -85,9 +85,9 @@ The API uses no third-party analytics, advertising SDKs, or tracking pixels. Pub
 
 - Raw v2 observations, including the pseudonymous contributor ID, are retained for approximately 180 complete days.
 - Before eligible raw records expire, a daily aggregate is created only when at least five distinct contributors observed that product that day. It retains product metadata, date, median/minimum/maximum price, and counts—not contributor IDs or individual rows.
-- Privacy-thresholded daily aggregates are retained for up to three years.
-- Days below the five-contributor threshold are deleted without creating a public aggregate.
-- Quarantined outliers are not included in public aggregates.
+- Privacy-thresholded daily aggregates are retained for up to three years. They are kept for future analysis and are not currently published.
+- Days below the five-contributor threshold are deleted without creating an aggregate.
+- Quarantined outliers are not included in aggregates or the published snapshot.
 
 Because a daily aggregate no longer contains contributor identifiers or individual rows, an individual contribution cannot be located or subtracted from that aggregate after raw records expire.
 
