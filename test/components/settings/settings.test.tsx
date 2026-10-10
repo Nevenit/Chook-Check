@@ -150,6 +150,42 @@ describe("ContributionSection", () => {
     expect(onToggle).toHaveBeenCalledWith("communityDownloadsEnabled", true);
   });
 
+  it("gives every switch and context field an accessible name", () => {
+    const settings = {
+      ...defaultSettings,
+      fairnessStudyEnabled: true,
+      shareState: true,
+      shareCity: true,
+      shareStore: true,
+    };
+    render(
+      <ContributionSection
+        settings={settings}
+        onToggle={() => {}}
+        onTextChange={() => {}}
+      />,
+    );
+    for (const name of [
+      "Community snapshot downloads",
+      "Contribute price history",
+      "Join the fairness study",
+      "Show price history on product pages",
+      "Browser family",
+      "State",
+      "City / region",
+      "Store name or ID",
+    ]) {
+      expect(screen.getByRole("switch", { name })).toBeDefined();
+    }
+    expect(screen.getByRole("combobox", { name: "State" })).toBeDefined();
+    expect(
+      screen.getByRole("textbox", { name: "City / region" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("textbox", { name: "Store name or ID" }),
+    ).toBeDefined();
+  });
+
   it("explains that contribution is pseudonymous", () => {
     render(
       <ContributionSection
