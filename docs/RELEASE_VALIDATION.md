@@ -138,7 +138,7 @@ The backfill (45 runs) refreshed all 4,000 products and expired all 20 days of o
 
 The first steady-state estimate exceeded the Free read limit (about 5.0M rows a day), so each changed product now refreshes at most daily and only public products get the daily recheck. The final review then found that the every-minute product selection still scanned settled and throttled products (about 8M rows a day at this scale) and that rate-limit cleanup scanned every minute; indexed due times and moving cleanup to the 30-minute job reduced an idle minute to 5 rows. Contributor deletions now leave the published stats on the next refresh instead of up to a day later.
 
-Requiring five contributors on the same recent day leaves about 110 of 4,000 synthetic products public at alpha scale; the previous rule published about 2,550.
+The first redesign required five contributors on the same day within 90 days. That published about 115 of 4,000 synthetic products at 30 contributors (410 at 100), and about half of those "current" days were more than a week old. The current price now uses each contributor's latest price from the last seven days, still requiring five contributors: 254 products at 30 contributors and 864 at 100, never more than a week old. The previous rule, five contributors anywhere in 90 days, published about 2,550 at 30 contributors.
 
 ## Remaining work
 
