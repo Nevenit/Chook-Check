@@ -28,7 +28,7 @@ Client timestamps must be recent, and exact duplicate observation IDs from the s
 
 Local history is the user’s own browser record and requires no crowd threshold. The community service exposes product statistics only when at least five distinct contributors are represented.
 
-For aggregation, repeated samples are balanced to one observation per contributor per product/day. This limits the influence of heavy browsers. Daily prices use the median; the minimum and maximum are also reported. “Current” community price refers to the latest UTC day within the last 90 days on which at least five distinct contributors observed the product, not a median across the whole lookback window. A product without such a day is not published.
+For aggregation, repeated samples are balanced to one observation per contributor per product/day. This limits the influence of heavy browsers. Daily prices use the median; the minimum and maximum are also reported. “Current” community price uses each contributor's latest price from the last seven days and requires at least five distinct contributors in that window; a product with fewer is not published. Around a weekly price change, the median can reflect the previous price for a few days until most contributors have seen the product again.
 
 Public outputs currently contain only that current median, minimum, and maximum; observation and contributor counts over the last 180 days; and promotion frequency over balanced samples. They do not include price history or the signals described below. The differential-pricing and observer-effect analyses are implemented and tested in the API but not published; publishing them requires its own endpoint and review.
 
