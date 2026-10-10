@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { ChookCheckDB } from "@/lib/db";
 import {
   CONSENT_VERSION,
@@ -13,13 +13,25 @@ import { makeObservation } from "../helpers";
 
 describe("settings", () => {
   let db: ChookCheckDB;
+  let extensionStorage: Record<string, unknown>;
 
   beforeEach(async () => {
     db = new ChookCheckDB(`test-settings-${Math.random()}`);
     await db.open();
+    extensionStorage = {};
+    vi.stubGlobal("browser", {
+      storage: {
+        local: {
+          remove: async (keys: string | string[]) => {
+            for (const key of [keys].flat()) delete extensionStorage[key];
+          },
+        },
+      },
+    });
   });
 
   afterEach(async () => {
+    vi.unstubAllGlobals();
     await db.delete();
   });
 
@@ -131,6 +143,12 @@ describe("settings", () => {
     expect(await db.sharingLog.count()).toBe(0);
     expect(await db.communitySnapshots.count()).toBe(0);
     expect((await getSettings(db)).historyContributionEnabled).toBe(false);
+  });
+
+  it("full reset forgets the snapshot ETag so the next download is complete", async () => {
+    extensionStorage.communitySnapshotEtag = '"snapshot-v1"';
+    await deleteAllLocalData(db);
+    expect(extensionStorage).not.toHaveProperty("communitySnapshotEtag");
   });
 
   it("full reset preserves a pending deletion recovery credential", async () => {

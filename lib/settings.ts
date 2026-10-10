@@ -8,6 +8,7 @@ import type {
 import { initDefaults } from "./store";
 
 export const CONSENT_VERSION = "2026-07-20-v1";
+export const COMMUNITY_SNAPSHOT_ETAG_KEY = "communitySnapshotEtag";
 
 export const MODE_DISCLOSURES: Record<PrivacyModeKey, string> = {
   communityDownloadsEnabled:
@@ -114,6 +115,9 @@ export async function clearLocalLogs(db: ChookCheckDB): Promise<void> {
 
 export async function deleteAllLocalData(db: ChookCheckDB): Promise<void> {
   const current = await getSettings(db);
+  // Forget the ETag first: a stale one makes the next download return 304
+  // and leaves the cleared snapshot table empty until the server data changes.
+  await browser.storage.local.remove(COMMUNITY_SNAPSHOT_ETAG_KEY);
   await db.transaction(
     "rw",
     [
