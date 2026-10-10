@@ -125,10 +125,12 @@ The badge is the overlay that appears on the retailer's page. Use the overlay-ho
 
 ## 9. Opt-in modes and outgoing data
 
-**Prerequisite (currently blocked):** the production API is still v1 (`v0.1.1`), so `/api/v2/...` returns 404. Turning on contribution fails at registration and the mode switches itself back off. Choose one of these before starting this section:
+**Prerequisite:** the production API is still v1 (`v0.1.1`), so `/api/v2/...` returns 404 there. Turning on contribution against production fails at registration and the mode switches itself back off. Use one of these:
 
-1. **Deploy v2 to production.** Set `RATE_LIMIT_SECRET` with `wrangler secret put`, then push a `v*` tag. The deploy workflow applies D1 migration `0001` before deploying. Existing v1 test builds will start getting `410 Gone`.
-2. **Point a development build at `wrangler dev`.** This needs a configurable API address and a development-only host permission, which is planned for Phase 5.
+1. **A local API build (available now).** Run `wrangler dev` and build with `CHOOK_API_ORIGIN`, as described in [CONTRIBUTING](../CONTRIBUTING.md#testing-against-a-local-api). Retailer pages stay live; only Chook Check requests go to your machine.
+2. **Deploy v2 to production.** Set `RATE_LIMIT_SECRET` with `wrangler secret put`, then push a `v*` tag. The deploy workflow applies D1 migration `0001` before deploying. Existing v1 test builds will start getting `410 Gone`.
+
+An automated Chromium run against the local API and simulated retailer pages already passed O1–O5, O7, and O9–O11 (see [release validation](RELEASE_VALIDATION.md#local-api-end-to-end-check)). Repeat them in a real browser on live pages, and run O6 and O8, which it did not cover.
 
 For every row, inspect the request bodies in the extension's Network tab.
 
