@@ -102,10 +102,10 @@ export function OverviewView({ onSelectProduct }: OverviewViewProps) {
       </section>
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Personalisation alerts</h2>
+        <h2 className={styles.sectionTitle}>Fairness study</h2>
         <p className={styles.emptyState}>
-          Community comparison coming soon — contribute your data to help detect
-          personalised pricing.
+          The fairness study looks for unexplained price differences between
+          matched shoppers. Its results are not published yet.
         </p>
       </section>
     </div>

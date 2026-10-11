@@ -35,8 +35,8 @@ export default defineConfig({
   manifest: {
     name: localApi ? "Chook Check (local API)" : "Chook Check",
     description:
-      "Track Australian supermarket prices, detect personalised pricing, and compare across Woolworths and Coles.",
-    version: "0.1.0",
+      "Record the Woolworths and Coles prices you see, keep a private price history, and optionally share with a community price dataset.",
+    version: "0.2.0",
     permissions: ["storage", "alarms", "scripting"],
     host_permissions: [
       "https://www.woolworths.com.au/*",

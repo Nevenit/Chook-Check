@@ -6,7 +6,7 @@ Chook Check is a privacy-first browser extension for recording prices while you 
 
 ## Project status
 
-The project is in active pre-release development and is not yet listed on the Chrome Web Store or Firefox Add-ons. The local history workflow, versioned contribution API, privacy controls, public aggregation thresholds, and Chrome/Firefox MV3 builds are implemented. Retailer DOM changes and production deployment still require ongoing QA before a store release.
+The project is in active pre-release development. An early version is listed on [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/chook-check/); it is not yet on the Chrome Web Store. The local history workflow, versioned contribution API, privacy controls, public aggregation thresholds, and Chrome/Firefox MV3 builds are implemented. Retailer DOM changes and production deployment still require ongoing QA before a store release.
 
 Chook Check can surface evidence worth investigating; it cannot, by itself, prove that a retailer intentionally personalised a price. See [Measurement methodology](docs/METHODOLOGY.md).
 
