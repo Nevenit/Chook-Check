@@ -8,6 +8,8 @@ const localApi = apiOrigin !== PRODUCTION_API_ORIGIN;
 export default defineConfig({
   manifestVersion: 3,
   modules: ["@wxt-dev/module-react"],
+  // The Firefox sources zip must not ship local test artifacts (gitignored).
+  zip: { excludeSources: ["output/**"] },
   vite: () => ({
     define: {
       "import.meta.env.CHOOK_API_ORIGIN": JSON.stringify(apiOrigin),
